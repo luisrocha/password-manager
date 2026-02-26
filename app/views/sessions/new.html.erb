@@ -1,0 +1,29 @@
+<% content_for :title, "Password Manager" %>
+
+<main class="credentials-page">
+  <section class="panel">
+    <h1>Unlock Password Manager</h1>
+    <p>Enter the master password to access stored credentials.</p>
+
+    <% if notice.present? %>
+      <p class="flash notice"><%= notice %></p>
+    <% end %>
+    <% if alert.present? %>
+      <p class="flash alert"><%= alert %></p>
+    <% end %>
+
+    <% unless MasterPassword.configured? %>
+      <p class="flash alert">
+        Master password is not configured. Set `MASTER_PASSWORD` (or Rails credentials `master_password`) and restart the app.
+      </p>
+    <% end %>
+
+    <%= form_with url: unlock_path, method: :post, local: true do |f| %>
+      <div class="grid">
+        <%= f.label :master_password, "Master password" %>
+        <%= f.password_field :master_password, required: true, autofocus: true %>
+      </div>
+      <%= f.submit "Unlock" %>
+    <% end %>
+  </section>
+</main>

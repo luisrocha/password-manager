@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v rg >/dev/null 2>&1; then
+  echo "ripgrep (rg) is required for bin/style" >&2
+  exit 1
+fi
+
+mapfile -t ruby_files < <(rg --files -g '*.rb' -g '*.rake' -g 'Gemfile' -g 'Rakefile' -g 'config.ru')
+
+if [ "${#ruby_files[@]}" -eq 0 ]; then
+  echo "No Ruby files found."
+  exit 0
+fi
+
+for file in "${ruby_files[@]}"; do
+  ruby -c "$file" >/dev/null
+done
+
+echo "Style check passed (Ruby syntax): ${#ruby_files[@]} files"
