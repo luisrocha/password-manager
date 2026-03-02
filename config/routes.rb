@@ -1,6 +1,13 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
+  namespace :api do
+    namespace :browser do
+      post "auth/unlock", to: "auth#unlock"
+      post "credentials/search", to: "credentials#search"
+    end
+  end
+
   get "unlock", to: "sessions#new"
   post "unlock", to: "sessions#create"
   delete "lock", to: "sessions#destroy"
