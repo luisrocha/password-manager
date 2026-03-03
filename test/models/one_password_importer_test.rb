@@ -19,10 +19,31 @@ class OnePasswordImporterTest < ActiveSupport::TestCase
     file.write("Website,Username\nexample.com,alice\n")
     file.rewind
 
-    error = assert_raises(ArgumentError) { OnePasswordImporter.new(file).call }
-    assert_match(/Missing required CSV headers/, error.message)
+    result = OnePasswordImporter.new(file).call
+    assert_equal 0, result.created_count
+    assert_match(/Missing required CSV headers/, result.errors.first)
   ensure
     file.close
     file.unlink
+  end
+
+  test "handles binary encoded csv content without crashing" do
+    file = Tempfile.new(["binary-encoded", ".csv"])
+    # Includes invalid UTF-8 bytes in password/notes columns.
+    binary_csv = "Title,Website,Username,Password,Notes\n" \
+      "Conta,example.com,alice,abc\xC3\x28,ol\xE9\n".b
+    file.binmode
+    file.write(binary_csv)
+    file.rewind
+
+    result = OnePasswordImporter.new(file).call
+
+    assert_equal 1, result.created_count
+    assert_empty result.errors
+    assert_equal 1, Credential.count
+    assert_equal "Conta", Credential.first.name
+  ensure
+    file&.close
+    file&.unlink
   end
 end

@@ -48,6 +48,20 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, response.parsed_body.fetch("credentials").size
   end
 
+  test "returns multiple credentials for the same domain" do
+    first = Credential.create!(name: "GitHub Personal", domain: "github.com", category: "login", username: "alice", password: "secret-1")
+    second = Credential.create!(name: "GitHub Work", domain: "github.com", category: "login", username: "alice.work", password: "secret-2")
+
+    post "/api/browser/credentials/search",
+      params: { origin: "https://github.com" },
+      headers: @auth_header,
+      as: :json
+
+    assert_response :success
+    ids = response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }
+    assert_equal [first.id.to_s, second.id.to_s].sort, ids.sort
+  end
+
   test "returns unauthorized when browser token is missing" do
     post "/api/browser/credentials/search",
       params: { origin: "https://github.com" },

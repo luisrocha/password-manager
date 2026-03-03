@@ -35,4 +35,11 @@ class CredentialTest < ActiveSupport::TestCase
     assert_equal "alice", credential.reload.username
     assert_equal "top-secret", credential.password
   end
+
+  test "allows long domain values without character-length restriction" do
+    long_domain = ("a" * 260) + ".example/custom:path?param=1"
+    credential = Credential.new(name: "Long Domain", domain: long_domain, category: "login")
+
+    assert credential.valid?
+  end
 end

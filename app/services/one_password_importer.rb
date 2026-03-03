@@ -24,18 +24,22 @@ class OnePasswordImporter
     errors = []
 
     rows.each_with_index do |row, index|
-      attrs = normalize(row)
-      credential = Credential.new(attrs)
+      begin
+        attrs = normalize(row)
+        credential = Credential.new(attrs)
 
-      if credential.save
-        created_count += 1
-      else
-        errors << "Row #{index + 2}: #{credential.errors.full_messages.join(', ')}"
+        if credential.save
+          created_count += 1
+        else
+          errors << "Row #{index + 2}: #{credential.errors.full_messages.join(', ')}"
+        end
+      rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError => e
+        errors << "Row #{index + 2}: invalid character encoding (#{e.message})"
       end
     end
 
     Result.new(created_count: created_count, errors: errors)
-  rescue RuntimeError => e
+  rescue ArgumentError, RuntimeError => e
     Result.new(created_count: 0, errors: ["Malformed CSV: #{e.message}"])
   end
 
@@ -44,7 +48,7 @@ class OnePasswordImporter
   attr_reader :file
 
   def parse_rows
-    content = file.read.to_s
+    content = normalize_text(file.read.to_s)
     rows = parse_csv(content)
     headers = rows.shift || []
     normalized_headers = headers.map { |h| normalize_header(h) }
@@ -55,7 +59,7 @@ class OnePasswordImporter
     end
 
     mapped_rows = rows.map do |values|
-      headers.each_with_index.to_h { |header, idx| [header, values[idx].to_s] }
+      headers.each_with_index.to_h { |header, idx| [header, normalize_text(values[idx].to_s)] }
     end
 
     mapped_rows
@@ -75,7 +79,7 @@ class OnePasswordImporter
       key = HEADER_MAP[normalize_header(header)]
       next unless key
 
-      value = row[header]&.strip
+      value = normalize_text(row[header]).strip
       next if value.blank?
 
       attrs[key] = value
@@ -130,5 +134,18 @@ class OnePasswordImporter
 
     values << current
     values
+  end
+
+  def normalize_text(value)
+    text = value.to_s
+    return "" if text.empty?
+
+    utf8_text = text.dup.force_encoding(Encoding::UTF_8)
+    return utf8_text.scrub if utf8_text.valid_encoding?
+
+    latin1_text = text.dup.force_encoding(Encoding::ISO_8859_1).encode(Encoding::UTF_8)
+    latin1_text.scrub
+  rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError
+    text.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "")
   end
 end
