@@ -32,6 +32,7 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, body.fetch("credentials").size
     assert_equal matching.id.to_s, body.dig("credentials", 0, "id")
     assert_equal "GitHub", body.dig("credentials", 0, "displayName")
+    assert_equal "github.com", body.dig("credentials", 0, "domain")
     assert_equal "alice", body.dig("credentials", 0, "username")
     assert_equal "secret", body.dig("credentials", 0, "password")
   end
@@ -60,6 +61,45 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     ids = response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }
     assert_equal [first.id.to_s, second.id.to_s].sort, ids.sort
+  end
+
+  test "supports global search by name, domain, and username" do
+    github = Credential.create!(name: "GitHub", domain: "github.com", category: "login", username: "alice", password: "secret-1")
+    gitlab = Credential.create!(name: "GitLab", domain: "gitlab.com", category: "login", username: "bob", password: "secret-2")
+    gmail = Credential.create!(name: "Mail", domain: "mail.example.com", category: "login", username: "carol@example.com", password: "secret-3")
+
+    post "/api/browser/credentials/search",
+      params: { query: "hub" },
+      headers: @auth_header,
+      as: :json
+    assert_response :success
+    assert_equal [github.id.to_s], response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }
+
+    post "/api/browser/credentials/search",
+      params: { query: "lab.com" },
+      headers: @auth_header,
+      as: :json
+    assert_response :success
+    assert_equal [gitlab.id.to_s], response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }
+
+    post "/api/browser/credentials/search",
+      params: { query: "carol@" },
+      headers: @auth_header,
+      as: :json
+    assert_response :success
+    assert_equal [gmail.id.to_s], response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }
+  end
+
+  test "returns no credentials when host and query are both missing" do
+    Credential.create!(name: "GitHub", domain: "github.com", category: "login", username: "alice", password: "secret")
+
+    post "/api/browser/credentials/search",
+      params: {},
+      headers: @auth_header,
+      as: :json
+
+    assert_response :success
+    assert_empty response.parsed_body.fetch("credentials")
   end
 
   test "returns unauthorized when browser token is missing" do
