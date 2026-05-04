@@ -135,4 +135,100 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal credential.id.to_s, response.parsed_body.dig("credentials", 0, "id")
   end
+
+  test "creates a credential from browser form data" do
+    assert_difference("Credential.count", 1) do
+      post "/api/browser/credentials",
+        params: {
+          origin: "https://github.com",
+          title: "GitHub",
+          username: "alice@example.com",
+          password: "secret-123"
+        },
+        headers: @auth_header,
+        as: :json
+    end
+
+    assert_response :created
+
+    credential = Credential.order(:created_at).last
+    assert_equal "GitHub", credential.name
+    assert_equal "github.com", credential.domain
+    assert_equal "alice@example.com", credential.username
+    assert_equal "secret-123", credential.password
+    assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
+  end
+
+  test "returns validation error when password is missing during browser create" do
+    post "/api/browser/credentials",
+      params: {
+        origin: "https://github.com",
+        username: "alice@example.com"
+      },
+      headers: @auth_header,
+      as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "validation_failed", response.parsed_body["code"]
+  end
+
+  test "updates a credential from browser form data" do
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      username: "alice@example.com",
+      password: "secret-123"
+    )
+
+    patch "/api/browser/credentials/#{credential.id}",
+      params: {
+        username: "alice.updated@example.com",
+        password: "updated-secret"
+      },
+      headers: @auth_header,
+      as: :json
+
+    assert_response :success
+    assert_equal "alice.updated@example.com", credential.reload.username
+    assert_equal "updated-secret", credential.password
+    assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
+  end
+
+  test "returns validation error when password is missing during browser update" do
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      username: "alice@example.com",
+      password: "secret-123"
+    )
+
+    patch "/api/browser/credentials/#{credential.id}",
+      params: { username: "alice.updated@example.com", password: "" },
+      headers: @auth_header,
+      as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "validation_failed", response.parsed_body["code"]
+  end
+
+  test "deletes a credential from browser edit flow" do
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      username: "alice@example.com",
+      password: "secret-123"
+    )
+
+    assert_difference("Credential.count", -1) do
+      delete "/api/browser/credentials/#{credential.id}",
+        headers: @auth_header,
+        as: :json
+    end
+
+    assert_response :success
+    assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
+  end
 end

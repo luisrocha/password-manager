@@ -19,7 +19,96 @@ class Api::Browser::CredentialsController < Api::BaseController
     }
   end
 
+  def create
+    if credential_create_params[:password].to_s.empty?
+      render json: {
+        error: "Password can't be blank",
+        code: "validation_failed"
+      }, status: :unprocessable_entity
+      return
+    end
+
+    credential = Credential.new(
+      name: browser_credential_name,
+      domain: browser_credential_domain,
+      username: credential_create_params[:username].to_s.strip,
+      password: credential_create_params[:password].to_s,
+      notes: credential_create_params[:notes].to_s.strip.presence,
+      category: "login"
+    )
+
+    if credential.save
+      render json: {
+        credential: {
+          id: credential.id.to_s,
+          displayName: credential.name,
+          domain: credential.domain.to_s,
+          username: credential.username.to_s
+        }
+      }, status: :created
+    else
+      render json: {
+        error: credential.errors.full_messages.to_sentence,
+        code: "validation_failed"
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def update
+    credential = Credential.find(params[:id])
+
+    if credential_update_params[:password].to_s.empty?
+      render json: {
+        error: "Password can't be blank",
+        code: "validation_failed"
+      }, status: :unprocessable_entity
+      return
+    end
+
+    if credential.update(
+      username: credential_update_params[:username].to_s.strip,
+      password: credential_update_params[:password].to_s,
+      notes: credential_update_params[:notes].to_s.strip.presence
+    )
+      render json: {
+        credential: {
+          id: credential.id.to_s,
+          displayName: credential.name,
+          domain: credential.domain.to_s,
+          username: credential.username.to_s
+        }
+      }
+    else
+      render json: {
+        error: credential.errors.full_messages.to_sentence,
+        code: "validation_failed"
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    credential = Credential.find(params[:id])
+    credential.destroy
+
+    render json: {
+      credential: {
+        id: credential.id.to_s,
+        displayName: credential.name,
+        domain: credential.domain.to_s,
+        username: credential.username.to_s
+      }
+    }
+  end
+
   private
+
+  def credential_create_params
+    params.permit(:name, :displayName, :domain, :origin, :url, :frameUrl, :frame_url, :title, :username, :password, :notes)
+  end
+
+  def credential_update_params
+    params.permit(:username, :password, :notes)
+  end
 
   def extract_hosts
     %i[origin url frameUrl frame_url].filter_map do |key|
@@ -56,6 +145,19 @@ class Api::Browser::CredentialsController < Api::BaseController
 
   def search_query
     params[:query].to_s.strip
+  end
+
+  def browser_credential_name
+    credential_create_params[:name].to_s.strip.presence ||
+      credential_create_params[:displayName].to_s.strip.presence ||
+      credential_create_params[:title].to_s.strip.presence ||
+      browser_credential_domain.presence ||
+      "Website Login"
+  end
+
+  def browser_credential_domain
+    credential_create_params[:domain].to_s.strip.presence ||
+      extract_hosts.first.to_s.strip.presence
   end
 
   def host_filtered_scope(hosts)

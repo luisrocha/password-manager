@@ -5,6 +5,9 @@ Rails.application.routes.draw do
     namespace :browser do
       post "auth/unlock", to: "auth#unlock"
       post "credentials/search", to: "credentials#search"
+      post "credentials", to: "credentials#create"
+      patch "credentials/:id", to: "credentials#update"
+      delete "credentials/:id", to: "credentials#destroy"
     end
   end
 
