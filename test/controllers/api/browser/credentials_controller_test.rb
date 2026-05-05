@@ -269,6 +269,29 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "validation_failed", response.parsed_body["code"]
   end
 
+  test "preserves notes when browser update omits notes" do
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      username: "alice@example.com",
+      password: "secret-123",
+      notes: "Keep this note"
+    )
+
+    patch "/api/browser/credentials/#{credential.id}",
+      params: {
+        username: "alice.updated@example.com",
+        password: "updated-secret"
+      },
+      headers: @auth_header,
+      as: :json
+
+    assert_response :success
+    assert_equal "alice.updated@example.com", credential.reload.username
+    assert_equal "Keep this note", credential.notes
+  end
+
   test "deletes a credential from browser edit flow" do
     credential = Credential.create!(
       name: "GitHub",

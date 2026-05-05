@@ -65,11 +65,13 @@ class Api::Browser::CredentialsController < Api::BaseController
       return
     end
 
-    if credential.update(
+    attributes = {
       username: credential_update_params[:username].to_s.strip,
-      password: credential_update_params[:password].to_s,
-      notes: credential_update_params[:notes].to_s.strip.presence
-    )
+      password: credential_update_params[:password].to_s
+    }
+    attributes[:notes] = credential_update_params[:notes].to_s.strip.presence if credential_update_params.key?(:notes)
+
+    if credential.update(attributes)
       render json: {
         credential: {
           id: credential.id.to_s,
