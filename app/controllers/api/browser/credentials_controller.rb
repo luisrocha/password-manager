@@ -7,15 +7,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     credentials = matching_credentials(hosts, query)
 
     render json: {
-      credentials: credentials.map do |credential|
-        {
-          id: credential.id.to_s,
-          displayName: credential.name,
-          domain: credential.domain.to_s,
-          username: credential.username.to_s,
-          password: credential.password.to_s
-        }
-      end
+      credentials: credentials.map { |credential| credential_metadata(credential) }
     }
   end
 
@@ -39,12 +31,7 @@ class Api::Browser::CredentialsController < Api::BaseController
 
     if credential.save
       render json: {
-        credential: {
-          id: credential.id.to_s,
-          displayName: credential.name,
-          domain: credential.domain.to_s,
-          username: credential.username.to_s
-        }
+        credential: credential_metadata(credential)
       }, status: :created
     else
       render json: {
@@ -52,6 +39,16 @@ class Api::Browser::CredentialsController < Api::BaseController
         code: "validation_failed"
       }, status: :unprocessable_entity
     end
+  end
+
+  def show
+    credential = Credential.find(params[:id])
+
+    render json: {
+      credential: credential_metadata(credential).merge(
+        password: credential.password.to_s
+      )
+    }
   end
 
   def update
@@ -73,12 +70,7 @@ class Api::Browser::CredentialsController < Api::BaseController
 
     if credential.update(attributes)
       render json: {
-        credential: {
-          id: credential.id.to_s,
-          displayName: credential.name,
-          domain: credential.domain.to_s,
-          username: credential.username.to_s
-        }
+        credential: credential_metadata(credential)
       }
     else
       render json: {
@@ -93,12 +85,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     credential.destroy
 
     render json: {
-      credential: {
-        id: credential.id.to_s,
-        displayName: credential.name,
-        domain: credential.domain.to_s,
-        username: credential.username.to_s
-      }
+      credential: credential_metadata(credential)
     }
   end
 
@@ -213,5 +200,14 @@ class Api::Browser::CredentialsController < Api::BaseController
     end
 
     Credential.where(id: (sql_name_domain_ids + username_ids)).sorted.to_a
+  end
+
+  def credential_metadata(credential)
+    {
+      id: credential.id.to_s,
+      displayName: credential.name,
+      domain: credential.domain.to_s,
+      username: credential.username.to_s
+    }
   end
 end

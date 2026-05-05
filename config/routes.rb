@@ -6,6 +6,7 @@ Rails.application.routes.draw do
       post "auth/unlock", to: "auth#unlock"
       post "credentials/search", to: "credentials#search"
       post "credentials", to: "credentials#create"
+      get "credentials/:id", to: "credentials#show"
       patch "credentials/:id", to: "credentials#update"
       delete "credentials/:id", to: "credentials#destroy"
     end

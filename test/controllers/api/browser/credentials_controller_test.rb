@@ -34,7 +34,7 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "GitHub", body.dig("credentials", 0, "displayName")
     assert_equal "github.com", body.dig("credentials", 0, "domain")
     assert_equal "alice", body.dig("credentials", 0, "username")
-    assert_equal "secret", body.dig("credentials", 0, "password")
+    assert_not body.fetch("credentials", []).first.key?("password")
   end
 
   test "matches parent domains from subdomains" do
@@ -100,6 +100,24 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_empty response.parsed_body.fetch("credentials")
+  end
+
+  test "reveals a single credential password on demand" do
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      username: "alice",
+      password: "secret"
+    )
+
+    get "/api/browser/credentials/#{credential.id}",
+      headers: @auth_header,
+      as: :json
+
+    assert_response :success
+    assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
+    assert_equal "secret", response.parsed_body.dig("credential", "password")
   end
 
   test "returns unauthorized when browser token is missing" do
