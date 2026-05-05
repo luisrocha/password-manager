@@ -123,17 +123,73 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "token_expired", response.parsed_body["code"]
   end
 
-  test "accepts legacy static bearer token when configured" do
+  test "rejects static bearer token for credential search" do
     ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
-    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login", username: "alice", password: "secret")
 
     post "/api/browser/credentials/search",
       params: { origin: "https://github.com" },
       headers: { "Authorization" => "Bearer test-token" },
       as: :json
 
-    assert_response :success
-    assert_equal credential.id.to_s, response.parsed_body.dig("credentials", 0, "id")
+    assert_response :unauthorized
+    assert_equal "invalid_token", response.parsed_body["code"]
+  end
+
+  test "rejects static bearer token for credential create" do
+    ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
+
+    post "/api/browser/credentials",
+      params: {
+        origin: "https://github.com",
+        title: "GitHub",
+        username: "alice@example.com",
+        password: "secret-123"
+      },
+      headers: { "Authorization" => "Bearer test-token" },
+      as: :json
+
+    assert_response :unauthorized
+    assert_equal "invalid_token", response.parsed_body["code"]
+  end
+
+  test "rejects static bearer token for credential update" do
+    ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      username: "alice@example.com",
+      password: "secret-123"
+    )
+
+    patch "/api/browser/credentials/#{credential.id}",
+      params: {
+        username: "alice.updated@example.com",
+        password: "updated-secret"
+      },
+      headers: { "Authorization" => "Bearer test-token" },
+      as: :json
+
+    assert_response :unauthorized
+    assert_equal "invalid_token", response.parsed_body["code"]
+  end
+
+  test "rejects static bearer token for credential delete" do
+    ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      username: "alice@example.com",
+      password: "secret-123"
+    )
+
+    delete "/api/browser/credentials/#{credential.id}",
+      headers: { "Authorization" => "Bearer test-token" },
+      as: :json
+
+    assert_response :unauthorized
+    assert_equal "invalid_token", response.parsed_body["code"]
   end
 
   test "creates a credential from browser form data" do
