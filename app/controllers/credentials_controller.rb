@@ -6,6 +6,10 @@ class CredentialsController < ApplicationController
     @credentials = Credential.search(@query)
   end
 
+  def new
+    @credential = Credential.new(category: "login")
+  end
+
   def edit; end
 
   def create
@@ -14,17 +18,17 @@ class CredentialsController < ApplicationController
     if @credential.save
       redirect_to credentials_path, notice: "Credential saved."
     else
-      @query = ""
-      @credentials = Credential.sorted
       flash.now[:alert] = @credential.errors.full_messages.to_sentence
-      render :index, status: :unprocessable_entity
+      render :new, status: :unprocessable_entity
     end
   end
 
   def import
+    return if request.get?
+
     upload = params[:file]
     if upload.blank?
-      redirect_to credentials_path, alert: "Please choose a CSV file to import."
+      redirect_to import_credentials_path, alert: "Please choose a CSV file to import."
       return
     end
 
@@ -33,11 +37,11 @@ class CredentialsController < ApplicationController
     if result.errors.empty?
       redirect_to credentials_path, notice: "Imported #{result.created_count} item(s)."
     else
-      redirect_to credentials_path,
+      redirect_to import_credentials_path,
         alert: "Imported #{result.created_count} item(s) with errors: #{result.errors.first(5).join(' | ')}"
     end
   rescue ArgumentError => e
-    redirect_to credentials_path, alert: e.message
+    redirect_to import_credentials_path, alert: e.message
   end
 
   def update

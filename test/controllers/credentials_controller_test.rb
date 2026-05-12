@@ -10,6 +10,16 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "new renders successfully" do
+    get new_credential_url
+    assert_response :success
+  end
+
+  test "import renders successfully" do
+    get import_credentials_url
+    assert_response :success
+  end
+
   test "creates a credential" do
     assert_difference("Credential.count", 1) do
       post credentials_url, params: {
@@ -26,6 +36,18 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to credentials_url
   end
 
+  test "invalid create renders new page" do
+    post credentials_url, params: {
+      credential: {
+        name: "",
+        category: "login"
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Add Credential"
+  end
+
   test "imports a csv file" do
     file = fixture_file_upload("1password.csv", "text/csv")
 
@@ -34,6 +56,12 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to credentials_url
+  end
+
+  test "missing import file redirects to import page" do
+    post import_credentials_url
+
+    assert_redirected_to import_credentials_url
   end
 
   test "search filters results" do

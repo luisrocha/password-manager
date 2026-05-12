@@ -18,8 +18,9 @@ Rails.application.routes.draw do
 
   root "credentials#index"
 
-  resources :credentials, only: %i[index create edit update destroy] do
+  resources :credentials, only: %i[index new create edit update destroy] do
     collection do
+      get :import
       post :import
     end
   end
