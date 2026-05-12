@@ -215,6 +215,7 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
       post "/api/browser/credentials",
         params: {
           origin: "https://github.com",
+          name: "GitHub Personal",
           title: "GitHub",
           username: "alice@example.com",
           password: "secret-123"
@@ -226,7 +227,7 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
 
     credential = Credential.order(:created_at).last
-    assert_equal "GitHub", credential.name
+    assert_equal "GitHub Personal", credential.name
     assert_equal "github.com", credential.domain
     assert_equal "alice@example.com", credential.username
     assert_equal "secret-123", credential.password
@@ -257,6 +258,7 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     patch "/api/browser/credentials/#{credential.id}",
       params: {
+        name: "GitHub Updated",
         username: "alice.updated@example.com",
         password: "updated-secret"
       },
@@ -264,6 +266,7 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
       as: :json
 
     assert_response :success
+    assert_equal "GitHub Updated", credential.reload.name
     assert_equal "alice.updated@example.com", credential.reload.username
     assert_equal "updated-secret", credential.password
     assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")

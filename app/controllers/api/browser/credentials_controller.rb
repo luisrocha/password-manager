@@ -63,6 +63,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     end
 
     attributes = {
+      name: credential_update_name.presence || credential.name,
       username: credential_update_params[:username].to_s.strip,
       password: credential_update_params[:password].to_s
     }
@@ -96,7 +97,7 @@ class Api::Browser::CredentialsController < Api::BaseController
   end
 
   def credential_update_params
-    params.permit(:username, :password, :notes)
+    params.permit(:name, :displayName, :username, :password, :notes)
   end
 
   def extract_hosts
@@ -142,6 +143,11 @@ class Api::Browser::CredentialsController < Api::BaseController
       credential_create_params[:title].to_s.strip.presence ||
       browser_credential_domain.presence ||
       "Website Login"
+  end
+
+  def credential_update_name
+    credential_update_params[:name].to_s.strip.presence ||
+      credential_update_params[:displayName].to_s.strip.presence
   end
 
   def browser_credential_domain
