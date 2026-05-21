@@ -80,6 +80,97 @@ input[type="submit"] {
   cursor: pointer;
 }
 
+.password-generator-field {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.password-input-actions {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.password-input-actions input {
+  min-width: 0;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  padding: 0.45rem;
+}
+
+.icon-button::before {
+  content: "";
+  width: 1rem;
+  height: 1rem;
+  background: currentColor;
+  mask: var(--icon-url) center / contain no-repeat;
+  -webkit-mask: var(--icon-url) center / contain no-repeat;
+}
+
+.password-visibility-button {
+  --icon-url: var(--show-icon-url);
+}
+
+.password-visibility-button.is-visible {
+  --icon-url: var(--hide-icon-url);
+}
+
+.password-generator-panel {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: #f8fafc;
+}
+
+.password-generator-panel input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  accent-color: var(--accent);
+}
+
+.generator-length,
+.generator-option {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.generator-length {
+  justify-content: space-between;
+}
+
+.generator-option {
+  justify-content: flex-start;
+}
+
+.generator-option input {
+  margin-left: 0.45rem;
+}
+
+[data-password-generator-target="lengthValue"] {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .button-link {
   display: inline-block;
   border: 1px solid var(--accent);

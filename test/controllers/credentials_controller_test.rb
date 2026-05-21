@@ -13,6 +13,8 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   test "new renders successfully" do
     get new_credential_url
     assert_response :success
+    assert_includes response.body, "data-controller=\"password-generator\""
+    assert_includes response.body, "data-action=\"password-generator#generate\""
   end
 
   test "import renders successfully" do
@@ -46,6 +48,8 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "Add Credential"
+    assert_includes response.body, "data-controller=\"password-generator\""
+    assert_includes response.body, "data-action=\"password-generator#generate\""
   end
 
   test "imports a csv file" do
@@ -76,11 +80,25 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "edit renders successfully" do
-    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login")
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      password: "existing-secret"
+    )
 
     get edit_credential_url(credential)
 
     assert_response :success
+    assert_includes response.body, "existing-secret"
+    assert_includes response.body, "data-controller=\"password-generator\""
+    assert_includes response.body, "data-password-generator-target=\"visibilityButton\""
+    assert_includes response.body, "data-action=\"password-generator#toggleVisibility\""
+    assert_includes response.body, "data-action=\"password-generator#generate\""
+    assert_includes response.body, "aria-label=\"Show password\""
+    assert_includes response.body, "aria-label=\"Generate password\""
+    assert_includes response.body, "Include numbers"
+    assert_includes response.body, "Include symbols"
   end
 
   test "updates a credential" do
