@@ -86,7 +86,9 @@ export default class extends Controller {
     }
 
     try {
-      importVaultBackup(await file.text())
+      const serializedBackup = await file.text()
+      await this.verifyBackupKey(serializedBackup)
+      importVaultBackup(serializedBackup)
       this.showStatus("Backup imported. Enter your master password to unlock.")
       this.showUnlock()
     } catch {
@@ -170,6 +172,24 @@ export default class extends Controller {
 
     this.backupDownloadTarget.href = backupUrl
     this.backupDownloadTarget.classList.remove("hidden")
+  }
+
+  async verifyBackupKey(serializedBackup) {
+    if (!this.vaultRegistered) return
+
+    const backup = JSON.parse(serializedBackup)
+    const response = await fetch("/unlock/verify_backup_key", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": document.querySelector("meta[name='csrf-token']").content
+      },
+      body: JSON.stringify({
+        signing_public_key_spki: backup.signing?.publicKeySpki
+      })
+    })
+
+    if (!response.ok) throw new Error("backup_key_mismatch")
   }
 
   hideAllPanels() {

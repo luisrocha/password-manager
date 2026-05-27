@@ -73,4 +73,38 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to unlock_url
   end
+
+  test "verify backup key accepts when no vault signing key exists yet" do
+    post "/unlock/verify_backup_key", params: {
+      signing_public_key_spki: Base64.strict_encode64(MasterPasswordIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    }, as: :json
+
+    assert_response :success
+    assert_equal true, response.parsed_body["ok"]
+  end
+
+  test "verify backup key accepts matching registered signing key" do
+    public_key_spki = Base64.strict_encode64(MasterPasswordIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    VaultSigningKey.create!(public_key_spki:)
+
+    post "/unlock/verify_backup_key", params: { signing_public_key_spki: public_key_spki }, as: :json
+
+    assert_response :success
+    assert_equal true, response.parsed_body["ok"]
+  end
+
+  test "verify backup key rejects mismatched registered signing key" do
+    VaultSigningKey.create!(
+      public_key_spki: Base64.strict_encode64(MasterPasswordIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    )
+    other_key = OpenSSL::PKey::EC.generate("prime256v1")
+
+    post "/unlock/verify_backup_key", params: {
+      signing_public_key_spki: Base64.strict_encode64(other_key.public_to_der)
+    }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal false, response.parsed_body["ok"]
+    assert_equal "backup_key_mismatch", response.parsed_body["code"]
+  end
 end
