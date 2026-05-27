@@ -5,6 +5,7 @@ import {
   generateVault,
   hasStoredVault,
   importVaultBackup,
+  lockVault,
   unlockVault
 } from "vault_crypto"
 
@@ -27,6 +28,7 @@ export default class extends Controller {
   ]
 
   connect() {
+    lockVault()
     this.showInitialState()
   }
 
