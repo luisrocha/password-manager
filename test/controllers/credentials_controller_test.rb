@@ -8,6 +8,8 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   test "index renders successfully" do
     get credentials_url
     assert_response :success
+    assert_includes response.body, 'data-controller="lock"'
+    assert_includes response.body, 'data-action="submit-&gt;lock#clear"'
   end
 
   test "new renders successfully" do
