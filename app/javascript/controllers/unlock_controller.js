@@ -12,12 +12,17 @@ import {
 export default class extends Controller {
   static targets = [
     "setupPanel",
+    "setupTitle",
+    "setupForm",
     "unlockPanel",
     "importPanel",
     "setupPassword",
     "setupConfirmation",
     "unlockPassword",
     "backupFile",
+    "cancelImportButton",
+    "flow",
+    "description",
     "sessionForm",
     "status",
     "backupDownload",
@@ -29,6 +34,7 @@ export default class extends Controller {
 
   connect() {
     lockVault()
+    this.flowTarget.classList.remove("hidden")
     this.showInitialState()
   }
 
@@ -44,9 +50,12 @@ export default class extends Controller {
 
     try {
       await generateVault(masterPassword)
+      this.setupFormTarget.classList.add("hidden")
+      this.setupTitleTarget.textContent = "Back up vault key"
       this.prepareBackupDownload()
       this.continueButtonTarget.classList.remove("hidden")
-      this.showStatus("Vault key created. Download a backup before continuing.")
+      this.setDescription("Download a backup before continuing to the vault.")
+      this.showStatus("Vault key created.")
     } catch {
       this.showError("Vault setup failed. Please try again.")
     }
@@ -89,9 +98,26 @@ export default class extends Controller {
     await this.unlockRailsSession()
   }
 
+  cancelImport() {
+    this.clearStatus()
+    if (hasStoredVault()) {
+      this.showUnlock()
+    } else if (this.vaultRegistered) {
+      this.showImport()
+      this.showStatus("Vault key not found on this browser. Import your backup to continue.")
+    } else {
+      this.showSetup()
+    }
+  }
+
   showSetup(event) {
     event?.preventDefault()
     this.hideAllPanels()
+    this.setDescription("Create a local vault key for this browser.")
+    this.setupTitleTarget.textContent = "Create vault key"
+    this.setupFormTarget.classList.remove("hidden")
+    this.backupDownloadTarget.classList.add("hidden")
+    this.continueButtonTarget.classList.add("hidden")
     this.setupPanelTarget.classList.remove("hidden")
     this.setupPasswordTarget.focus()
   }
@@ -99,6 +125,7 @@ export default class extends Controller {
   showUnlock(event) {
     event?.preventDefault()
     this.hideAllPanels()
+    this.setDescription("Enter your master password to decrypt the local vault key.")
     this.unlockPanelTarget.classList.remove("hidden")
     this.unlockPasswordTarget.focus()
   }
@@ -106,13 +133,23 @@ export default class extends Controller {
   showImport(event) {
     event?.preventDefault()
     this.hideAllPanels()
+    this.setDescription("Import your vault backup to use this browser.")
+    this.cancelImportButtonTarget.classList.remove("hidden")
     this.importPanelTarget.classList.remove("hidden")
     this.backupFileTarget.focus()
   }
 
   showInitialState() {
     try {
-      hasStoredVault() ? this.showUnlock() : this.showSetup()
+      if (hasStoredVault()) {
+        this.showUnlock()
+      } else if (this.vaultRegistered) {
+        this.showImport()
+        this.cancelImportButtonTarget.classList.add("hidden")
+        this.showStatus("Vault key not found on this browser. Import your backup to continue.")
+      } else {
+        this.showSetup()
+      }
     } catch {
       this.showImport()
       this.showError("Stored vault data could not be read. Import a backup to continue.")
@@ -154,5 +191,13 @@ export default class extends Controller {
   clearStatus() {
     this.statusTarget.textContent = ""
     this.statusTarget.className = "hidden"
+  }
+
+  setDescription(message) {
+    this.descriptionTarget.textContent = message
+  }
+
+  get vaultRegistered() {
+    return this.challengeTarget.dataset.vaultRegistered === "true"
   }
 }

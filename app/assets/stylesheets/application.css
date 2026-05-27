@@ -49,6 +49,20 @@ header {
   padding: 1rem;
 }
 
+.unlock-flow,
+.vault-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  margin-top: 0.85rem;
+}
+
 .grid {
   display: grid;
   gap: 0.6rem;
@@ -184,6 +198,10 @@ input[type="submit"] {
 .secondary-button-link {
   background: #fff;
   color: var(--accent);
+}
+
+button.secondary-button-link {
+  border-color: var(--accent);
 }
 
 a {

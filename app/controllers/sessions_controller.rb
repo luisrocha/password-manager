@@ -3,6 +3,7 @@ class SessionsController < ApplicationController
 
   def new
     session[:unlock_challenge] = SecureRandom.urlsafe_base64(32)
+    @vault_registered = VaultSigningKey.exists?
   end
 
   def create
