@@ -16,9 +16,21 @@ module ActiveSupport
 end
 
 module MasterPasswordIntegrationHelper
+  TEST_UNLOCK_KEY = OpenSSL::PKey::EC.generate("prime256v1")
+
   def unlock!
-    post unlock_url, params: { master_password: ENV.fetch("MASTER_PASSWORD") }
+    get unlock_url
+    post unlock_url, params: unlock_proof_params
     follow_redirect! if response.redirect?
+  end
+
+  def unlock_proof_params
+    challenge = response.body.match(/data-challenge="([^"]+)"/)[1]
+
+    {
+      unlock_signature: Base64.strict_encode64(TEST_UNLOCK_KEY.sign(OpenSSL::Digest::SHA256.new, challenge)),
+      signing_public_key_spki: Base64.strict_encode64(TEST_UNLOCK_KEY.public_to_der)
+    }
   end
 end
 

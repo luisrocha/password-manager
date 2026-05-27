@@ -1,6 +1,12 @@
 <% content_for :title, "Password Manager" %>
 
 <main class="credentials-page" data-controller="unlock">
+  <div
+    class="hidden"
+    data-unlock-target="challenge"
+    data-challenge="<%= session[:unlock_challenge] %>"
+  ></div>
+
   <section class="panel">
     <h1>Password Manager</h1>
     <p>Enter the master password to access stored credentials.</p>
@@ -10,12 +16,6 @@
     <% end %>
     <% if alert.present? %>
       <p class="flash alert"><%= alert %></p>
-    <% end %>
-
-    <% unless MasterPassword.configured? %>
-      <p class="flash alert">
-        Master password is not configured. Set `MASTER_PASSWORD` (or Rails credentials `master_password`) and restart the app.
-      </p>
     <% end %>
 
     <p class="hidden" data-unlock-target="status"></p>
@@ -87,8 +87,10 @@
 
     <%= form_with url: unlock_path, method: :post, local: true, html: { class: "hidden" }, data: { unlock_target: "sessionForm" } do |f| %>
       <div class="grid">
-        <%= f.label :master_password, "Master password" %>
-        <%= f.password_field :master_password, required: true, data: { unlock_target: "sessionPassword" } %>
+        <%= f.label :unlock_signature, "Unlock signature" %>
+        <%= f.hidden_field :unlock_signature, data: { unlock_target: "signature" } %>
+        <%= f.label :signing_public_key_spki, "Signing public key" %>
+        <%= f.hidden_field :signing_public_key_spki, data: { unlock_target: "signingPublicKey" } %>
       </div>
       <%= f.submit "Unlock" %>
     <% end %>
