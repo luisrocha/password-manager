@@ -14,6 +14,7 @@ Rails.application.routes.draw do
 
   get "unlock", to: "sessions#new"
   post "unlock", to: "sessions#create"
+  post "unlock/verify_backup_key", to: "sessions#verify_backup_key"
   delete "lock", to: "sessions#destroy"
 
   root "credentials#index"

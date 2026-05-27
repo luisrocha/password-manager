@@ -1,5 +1,5 @@
 class SessionsController < ApplicationController
-  skip_before_action :require_master_password, only: %i[new create]
+  skip_before_action :require_master_password, only: %i[new create verify_backup_key]
 
   def new
     session[:unlock_challenge] = SecureRandom.urlsafe_base64(32)
@@ -15,6 +15,17 @@ class SessionsController < ApplicationController
     session[:master_unlocked_at] = Time.current.to_i
     session.delete(:unlock_challenge)
     redirect_to credentials_path, notice: "Vault unlocked."
+  end
+
+  def verify_backup_key
+    signing_key = VaultSigningKey.current
+    if signing_key.blank?
+      render json: { ok: true }
+    elsif signing_key.public_key_spki == params[:signing_public_key_spki].to_s
+      render json: { ok: true }
+    else
+      render json: { ok: false, code: "backup_key_mismatch" }, status: :unprocessable_entity
+    end
   end
 
   def destroy
