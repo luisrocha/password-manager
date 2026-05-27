@@ -5,11 +5,12 @@
     class="hidden"
     data-unlock-target="challenge"
     data-challenge="<%= session[:unlock_challenge] %>"
+    data-vault-registered="<%= @vault_registered %>"
   ></div>
 
   <section class="panel">
     <h1>Password Manager</h1>
-    <p>Enter the master password to access stored credentials.</p>
+    <p data-unlock-target="description">Preparing vault unlock.</p>
 
     <% if notice.present? %>
       <p class="flash notice"><%= notice %></p>
@@ -18,81 +19,81 @@
       <p class="flash alert"><%= alert %></p>
     <% end %>
 
-    <p class="hidden" data-unlock-target="status"></p>
+    <div class="unlock-flow hidden" data-unlock-target="flow">
+      <p class="hidden" data-unlock-target="status"></p>
 
-    <div class="vault-panel hidden" data-unlock-target="setupPanel">
-      <h2>Create vault key</h2>
-      <p>This browser does not have a local vault key yet.</p>
+      <div class="vault-panel hidden" data-unlock-target="setupPanel">
+        <h2 data-unlock-target="setupTitle">Create vault key</h2>
 
-      <%= form_with url: unlock_path, method: :post, local: true, data: { action: "unlock#setup" } do |f| %>
-        <div class="grid">
-          <%= f.label :setup_master_password, "New master password" %>
-          <%= f.password_field :setup_master_password, required: true, autocomplete: "new-password", data: { unlock_target: "setupPassword" } %>
+        <%= form_with url: unlock_path, method: :post, local: true, data: { action: "submit->unlock#setup", unlock_target: "setupForm" } do |f| %>
+          <div class="grid">
+            <%= f.label :setup_master_password, "New master password" %>
+            <%= f.password_field :setup_master_password, required: true, autocomplete: "new-password", data: { unlock_target: "setupPassword" } %>
 
-          <%= f.label :setup_master_password_confirmation, "Confirm master password" %>
-          <%= f.password_field :setup_master_password_confirmation, required: true, autocomplete: "new-password", data: { unlock_target: "setupConfirmation" } %>
-        </div>
+            <%= f.label :setup_master_password_confirmation, "Confirm master password" %>
+            <%= f.password_field :setup_master_password_confirmation, required: true, autocomplete: "new-password", data: { unlock_target: "setupConfirmation" } %>
+          </div>
 
-        <div class="form-actions">
-          <%= f.submit "Create and Unlock" %>
-          <%= link_to "Import backup", "#", data: { action: "unlock#showImport" } %>
-        </div>
-      <% end %>
-    </div>
-
-    <div class="vault-panel hidden" data-unlock-target="unlockPanel">
-      <h2>Unlock vault</h2>
-
-      <%= form_with url: unlock_path, method: :post, local: true, data: { action: "unlock#unlock" } do |f| %>
-        <div class="grid">
-          <%= f.label :local_master_password, "Master password" %>
-          <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", data: { unlock_target: "unlockPassword" } %>
-        </div>
+          <div class="form-actions">
+            <%= f.submit "Create Vault Key" %>
+            <%= link_to "Import backup", "#", data: { action: "unlock#showImport" } %>
+          </div>
+        <% end %>
 
         <div class="form-actions">
-          <%= f.submit "Unlock" %>
-          <%= link_to "Import backup", "#", data: { action: "unlock#showImport" } %>
+          <a
+            class="button-link hidden"
+            download="password-manager-vault-backup.json"
+            data-unlock-target="backupDownload"
+          >Download Backup</a>
+          <button
+            type="button"
+            class="secondary-button-link hidden"
+            data-unlock-target="continueButton"
+            data-action="unlock#continueToVault"
+          >Continue to Vault</button>
         </div>
-      <% end %>
+      </div>
+
+      <div class="vault-panel hidden" data-unlock-target="unlockPanel">
+        <h2>Unlock vault</h2>
+
+        <%= form_with url: unlock_path, method: :post, local: true, data: { action: "submit->unlock#unlock" } do |f| %>
+          <div class="grid">
+            <%= f.label :local_master_password, "Master password" %>
+            <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", data: { unlock_target: "unlockPassword" } %>
+          </div>
+
+          <div class="form-actions">
+            <%= f.submit "Unlock" %>
+            <%= link_to "Import backup", "#", data: { action: "unlock#showImport" } %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="vault-panel hidden" data-unlock-target="importPanel">
+        <h2>Import vault backup</h2>
+
+        <form data-action="submit->unlock#importBackup">
+          <div class="grid">
+            <label for="vault_backup_file">Backup file</label>
+            <input id="vault_backup_file" type="file" accept="application/json,.json" required data-unlock-target="backupFile">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit">Import Backup</button>
+            <button type="button" class="secondary-button-link" data-unlock-target="cancelImportButton" data-action="unlock#cancelImport">Cancel</button>
+            <% unless @vault_registered %>
+              <%= link_to "Create new key", "#", data: { action: "unlock#showSetup" } %>
+            <% end %>
+          </div>
+        </form>
+      </div>
     </div>
-
-    <div class="vault-panel hidden" data-unlock-target="importPanel">
-      <h2>Import vault backup</h2>
-      <p>Use this when the vault key was generated on another browser.</p>
-
-      <form data-action="unlock#importBackup">
-        <div class="grid">
-          <label for="vault_backup_file">Backup file</label>
-          <input id="vault_backup_file" type="file" accept="application/json,.json" required data-unlock-target="backupFile">
-        </div>
-
-        <div class="form-actions">
-          <button type="submit">Import Backup</button>
-          <%= link_to "Create new key", "#", data: { action: "unlock#showSetup" } %>
-        </div>
-      </form>
-    </div>
-
-    <a
-      class="button-link secondary-button-link hidden"
-      download="password-manager-vault-backup.json"
-      data-unlock-target="backupDownload"
-    >Download vault backup</a>
-    <button
-      type="button"
-      class="hidden"
-      data-unlock-target="continueButton"
-      data-action="unlock#continueToVault"
-    >Continue to Vault</button>
 
     <%= form_with url: unlock_path, method: :post, local: true, html: { class: "hidden" }, data: { unlock_target: "sessionForm" } do |f| %>
-      <div class="grid">
-        <%= f.label :unlock_signature, "Unlock signature" %>
-        <%= f.hidden_field :unlock_signature, data: { unlock_target: "signature" } %>
-        <%= f.label :signing_public_key_spki, "Signing public key" %>
-        <%= f.hidden_field :signing_public_key_spki, data: { unlock_target: "signingPublicKey" } %>
-      </div>
-      <%= f.submit "Unlock" %>
+      <%= f.hidden_field :unlock_signature, data: { unlock_target: "signature" } %>
+      <%= f.hidden_field :signing_public_key_spki, data: { unlock_target: "signingPublicKey" } %>
     <% end %>
   </section>
 </main>

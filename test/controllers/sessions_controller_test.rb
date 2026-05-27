@@ -7,9 +7,22 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, 'data-controller="unlock"'
     assert_includes response.body, 'data-unlock-target="challenge"'
+    assert_includes response.body, 'data-vault-registered="false"'
     assert_includes response.body, 'data-unlock-target="setupPanel"'
     assert_includes response.body, 'data-unlock-target="unlockPanel"'
     assert_includes response.body, 'data-unlock-target="importPanel"'
+  end
+
+  test "unlock page marks registered vault and hides create new key action" do
+    VaultSigningKey.create!(
+      public_key_spki: Base64.strict_encode64(MasterPasswordIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    )
+
+    get unlock_url
+
+    assert_response :success
+    assert_includes response.body, 'data-vault-registered="true"'
+    assert_not_includes response.body, "Create new key"
   end
 
   test "create rejects unsigned unlock attempts" do
