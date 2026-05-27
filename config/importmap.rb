@@ -1,4 +1,6 @@
 pin "application"
+pin "vault_crypto"
+pin "openpgp", to: "https://cdn.jsdelivr.net/npm/openpgp@6.2.2/dist/openpgp.min.mjs"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
