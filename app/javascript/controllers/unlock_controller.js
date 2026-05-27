@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import {
+  buildUnlockProof,
   exportVaultBackup,
   generateVault,
   hasStoredVault,
@@ -16,11 +17,13 @@ export default class extends Controller {
     "setupConfirmation",
     "unlockPassword",
     "backupFile",
-    "sessionPassword",
     "sessionForm",
     "status",
     "backupDownload",
-    "continueButton"
+    "continueButton",
+    "challenge",
+    "signature",
+    "signingPublicKey"
   ]
 
   connect() {
@@ -39,7 +42,6 @@ export default class extends Controller {
 
     try {
       await generateVault(masterPassword)
-      this.sessionPasswordTarget.value = masterPassword
       this.prepareBackupDownload()
       this.continueButtonTarget.classList.remove("hidden")
       this.showStatus("Vault key created. Download a backup before continuing.")
@@ -56,8 +58,7 @@ export default class extends Controller {
 
     try {
       await unlockVault(masterPassword)
-      this.sessionPasswordTarget.value = masterPassword
-      this.unlockRailsSession()
+      await this.unlockRailsSession()
     } catch {
       this.showError("Could not unlock the local vault with that master password.")
     }
@@ -82,8 +83,8 @@ export default class extends Controller {
     }
   }
 
-  continueToVault() {
-    this.unlockRailsSession()
+  async continueToVault() {
+    await this.unlockRailsSession()
   }
 
   showSetup(event) {
@@ -116,7 +117,11 @@ export default class extends Controller {
     }
   }
 
-  unlockRailsSession() {
+  async unlockRailsSession() {
+    const proof = await buildUnlockProof(this.challengeTarget.dataset.challenge)
+
+    this.signatureTarget.value = proof.signature
+    this.signingPublicKeyTarget.value = proof.signingPublicKeySpki
     this.sessionFormTarget.requestSubmit()
   }
 

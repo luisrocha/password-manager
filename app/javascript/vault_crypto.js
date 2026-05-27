@@ -11,13 +11,15 @@ const TEXT_DECODER = new TextDecoder()
 
 let unlockedPrivateKey = null
 let unlockedPublicKey = null
+let unlockedSigningKey = null
+let unlockedSigningPublicKey = null
 
 export function hasStoredVault() {
   return readStoredVault() !== null
 }
 
 export function isVaultUnlocked() {
-  return unlockedPrivateKey !== null && unlockedPublicKey !== null
+  return unlockedPrivateKey !== null && unlockedPublicKey !== null && unlockedSigningKey !== null
 }
 
 export async function generateVault(masterPassword) {
@@ -26,12 +28,15 @@ export async function generateVault(masterPassword) {
     curve: "curve25519",
     userIDs: [{ name: "Password Manager Vault" }]
   })
+  const signingKeys = await generateSigningKeys()
 
-  const vault = await buildEncryptedVault(privateKey, publicKey, masterPassword)
+  const vault = await buildEncryptedVault(privateKey, publicKey, signingKeys, masterPassword)
   storeVault(vault)
 
   unlockedPrivateKey = await openpgp.readPrivateKey({ armoredKey: privateKey })
   unlockedPublicKey = await openpgp.readKey({ armoredKey: publicKey })
+  unlockedSigningKey = signingKeys.privateKey
+  unlockedSigningPublicKey = signingKeys.publicKeySpki
 
   return vault
 }
@@ -41,9 +46,11 @@ export async function unlockVault(masterPassword) {
   if (!vault) throw new Error("vault_missing")
 
   const privateKey = await decryptPrivateKey(vault, masterPassword)
+  unlockedSigningKey = await decryptSigningKey(vault, masterPassword)
 
   unlockedPrivateKey = await openpgp.readPrivateKey({ armoredKey: privateKey })
   unlockedPublicKey = await openpgp.readKey({ armoredKey: vault.publicKey })
+  unlockedSigningPublicKey = vault.signing.publicKeySpki
 
   return true
 }
@@ -51,6 +58,8 @@ export async function unlockVault(masterPassword) {
 export function lockVault() {
   unlockedPrivateKey = null
   unlockedPublicKey = null
+  unlockedSigningKey = null
+  unlockedSigningPublicKey = null
 }
 
 export function exportVaultBackup() {
@@ -90,6 +99,21 @@ export async function decryptText(ciphertext) {
   return data
 }
 
+export async function buildUnlockProof(challenge) {
+  assertUnlocked()
+
+  const signature = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    unlockedSigningKey,
+    TEXT_ENCODER.encode(challenge)
+  )
+
+  return {
+    signature: encodeBase64(signature),
+    signingPublicKeySpki: unlockedSigningPublicKey
+  }
+}
+
 function readStoredVault() {
   const serializedVault = window.localStorage.getItem(STORAGE_KEY)
   if (!serializedVault) return null
@@ -105,20 +129,32 @@ function storeVault(vault) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(vault))
 }
 
-async function buildEncryptedVault(privateKey, publicKey, masterPassword) {
+async function buildEncryptedVault(privateKey, publicKey, signingKeys, masterPassword) {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
+  const signingIv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
   const key = await deriveWrappingKey(masterPassword, salt)
   const encryptedPrivateKey = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
     TEXT_ENCODER.encode(privateKey)
   )
+  const encryptedSigningPrivateKey = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: signingIv },
+    key,
+    TEXT_ENCODER.encode(signingKeys.privateKeyJwk)
+  )
 
   return {
     version: BACKUP_VERSION,
     publicKey,
     encryptedPrivateKey: encodeBase64(encryptedPrivateKey),
+    signing: {
+      algorithm: "ECDSA-P256-SHA256",
+      publicKeySpki: signingKeys.publicKeySpki,
+      encryptedPrivateKey: encodeBase64(encryptedSigningPrivateKey),
+      iv: encodeBase64(signingIv)
+    },
     kdf: {
       name: "PBKDF2",
       hash: "SHA-256",
@@ -129,6 +165,25 @@ async function buildEncryptedVault(privateKey, publicKey, masterPassword) {
       name: "AES-GCM",
       iv: encodeBase64(iv)
     }
+  }
+}
+
+async function generateSigningKeys() {
+  const keyPair = await crypto.subtle.generateKey(
+    {
+      name: "ECDSA",
+      namedCurve: "P-256"
+    },
+    true,
+    ["sign", "verify"]
+  )
+  const privateKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.privateKey)
+  const publicKeySpki = await crypto.subtle.exportKey("spki", keyPair.publicKey)
+
+  return {
+    privateKey: keyPair.privateKey,
+    privateKeyJwk: JSON.stringify(privateKeyJwk),
+    publicKeySpki: encodeBase64(publicKeySpki)
   }
 }
 
@@ -143,6 +198,27 @@ async function decryptPrivateKey(vault, masterPassword) {
   )
 
   return TEXT_DECODER.decode(privateKey)
+}
+
+async function decryptSigningKey(vault, masterPassword) {
+  const salt = decodeBase64(vault.kdf.salt)
+  const key = await deriveWrappingKey(masterPassword, salt)
+  const privateKeyJwk = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: decodeBase64(vault.signing.iv) },
+    key,
+    decodeBase64(vault.signing.encryptedPrivateKey)
+  )
+
+  return crypto.subtle.importKey(
+    "jwk",
+    JSON.parse(TEXT_DECODER.decode(privateKeyJwk)),
+    {
+      name: "ECDSA",
+      namedCurve: "P-256"
+    },
+    false,
+    ["sign"]
+  )
 }
 
 async function deriveWrappingKey(masterPassword, salt) {
@@ -171,6 +247,9 @@ async function deriveWrappingKey(masterPassword, salt) {
 function validateVault(vault) {
   if (vault?.version !== BACKUP_VERSION) throw new Error("vault_unsupported")
   if (!vault.publicKey || !vault.encryptedPrivateKey) throw new Error("vault_invalid")
+  if (vault.signing?.algorithm !== "ECDSA-P256-SHA256") throw new Error("vault_invalid")
+  if (!vault.signing.publicKeySpki || !vault.signing.encryptedPrivateKey) throw new Error("vault_invalid")
+  if (!vault.signing.iv) throw new Error("vault_invalid")
   if (vault.kdf?.name !== "PBKDF2" || !vault.kdf.salt) throw new Error("vault_invalid")
   if (vault.encryption?.name !== "AES-GCM" || !vault.encryption.iv) throw new Error("vault_invalid")
 }
