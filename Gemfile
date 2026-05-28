@@ -5,6 +5,7 @@ gem "propshaft"
 gem "importmap-rails"
 gem "stimulus-rails"
 gem "sqlite3", ">= 2.1"
+gem "turbo-rails"
 gem "puma", ">= 5.0"
 
 gem "tzinfo-data", platforms: %i[ windows jruby ]
