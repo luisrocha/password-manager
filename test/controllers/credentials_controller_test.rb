@@ -30,6 +30,8 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   test "import renders successfully" do
     get import_credentials_url
     assert_response :success
+    assert_includes response.body, "data-controller=\"credential-import\""
+    assert_includes response.body, "data-action=\"submit-&gt;credential-import#submit\""
   end
 
   test "creates a credential" do
@@ -75,6 +77,56 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Credential.count") do
       post import_credentials_url, params: { file: file }
+    end
+
+    assert_redirected_to import_credentials_url
+  end
+
+  test "encrypted csv import creates credentials" do
+    assert_difference("Credential.count", 2) do
+      post import_credentials_url, params: {
+        encrypted_import: "1",
+        credentials: {
+          "0" => {
+            name: "GitHub",
+            domain: "github.com",
+            category: "login",
+            encrypted_secret_payload: ENCRYPTED_PAYLOAD
+          },
+          "1" => {
+            name: "Server SSH",
+            domain: "example.internal",
+            category: "server",
+            encrypted_secret_payload: ENCRYPTED_PAYLOAD
+          }
+        }
+      }
+    end
+
+    assert_redirected_to credentials_url
+    assert_equal ["GitHub", "Server SSH"], Credential.order(:name).pluck(:name)
+    assert_equal [ENCRYPTED_PAYLOAD], Credential.distinct.pluck(:encrypted_secret_payload)
+  end
+
+  test "encrypted csv import rejects invalid rows without partial import" do
+    assert_no_difference("Credential.count") do
+      post import_credentials_url, params: {
+        encrypted_import: "1",
+        credentials: {
+          "0" => {
+            name: "GitHub",
+            domain: "",
+            category: "login",
+            encrypted_secret_payload: ENCRYPTED_PAYLOAD
+          },
+          "1" => {
+            name: "Server SSH",
+            domain: "example.internal",
+            category: "server",
+            encrypted_secret_payload: ENCRYPTED_PAYLOAD
+          }
+        }
+      }
     end
 
     assert_redirected_to import_credentials_url
