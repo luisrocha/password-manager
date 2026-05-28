@@ -15,7 +15,7 @@ export default class extends Controller {
     event.preventDefault()
 
     if (!isVaultUnlocked()) {
-      window.location.href = "/unlock"
+      this.visit("/unlock")
       return
     }
 
@@ -37,5 +37,13 @@ export default class extends Controller {
     this.usernameTarget.value = payload.username || ""
     this.passwordTarget.value = payload.password || ""
     this.notesTarget.value = payload.notes || ""
+  }
+
+  visit(path) {
+    if (window.Turbo) {
+      window.Turbo.visit(path)
+    } else {
+      window.location.href = path
+    }
   }
 }
