@@ -18,6 +18,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     get new_credential_url
     assert_response :success
     assert_includes response.body, "data-controller=\"credential-form\""
+    assert_not_includes response.body, "data-credential-form-encrypted-payload-value"
     assert_includes response.body, "data-controller=\"password-generator\""
     assert_includes response.body, "data-action=\"password-generator#generate\""
   end
@@ -103,6 +104,8 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "data-controller=\"credential-form\""
     assert_includes response.body, "data-credential-form-encrypted-payload-value="
+    assert_includes response.body, ERB::Util.html_escape(ENCRYPTED_PAYLOAD)
+    assert_not_includes response.body, "existing-secret"
     assert_includes response.body, "data-controller=\"password-generator\""
     assert_includes response.body, "data-password-generator-target=\"visibilityButton\""
     assert_includes response.body, "data-action=\"password-generator#toggleVisibility\""
@@ -111,6 +114,23 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "aria-label=\"Generate password\""
     assert_includes response.body, "Include numbers"
     assert_includes response.body, "Include symbols"
+  end
+
+  test "index does not render encrypted secret payload or plaintext secret fields" do
+    Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
+    )
+
+    get credentials_url
+
+    assert_response :success
+    assert_not_includes response.body, ENCRYPTED_PAYLOAD
+    assert_not_includes response.body, "alice@example.com"
+    assert_not_includes response.body, "top-secret-password"
+    assert_includes response.body, "Encrypted"
   end
 
   test "updates a credential" do
