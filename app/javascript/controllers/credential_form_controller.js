@@ -3,11 +3,22 @@ import { Turbo } from "@hotwired/turbo-rails"
 import { decryptText, encryptText, isVaultUnlocked } from "vault_crypto"
 
 export default class extends Controller {
-  static targets = ["username", "password", "notes", "encryptedPayload"]
+  static targets = ["name", "domain", "username", "password", "notes", "encryptedPayload"]
   static values = { encryptedPayload: String }
 
   connect() {
+    this.clearIdentityValidation = this.clearIdentityValidation.bind(this)
+    this.nameTarget.addEventListener("input", this.clearIdentityValidation)
+    this.domainTarget.addEventListener("input", this.clearIdentityValidation)
+    this.usernameTarget.addEventListener("input", this.clearIdentityValidation)
+
     if (this.existingPayloadPresent) this.decryptExistingPayload()
+  }
+
+  disconnect() {
+    this.nameTarget.removeEventListener("input", this.clearIdentityValidation)
+    this.domainTarget.removeEventListener("input", this.clearIdentityValidation)
+    this.usernameTarget.removeEventListener("input", this.clearIdentityValidation)
   }
 
   async submit(event) {
@@ -15,6 +26,7 @@ export default class extends Controller {
 
     event.preventDefault()
 
+    this.validateIdentity()
     if (!this.element.reportValidity()) return
 
     if (!isVaultUnlocked()) {
@@ -73,6 +85,19 @@ export default class extends Controller {
     } else {
       this.element.requestSubmit(submitter)
     }
+  }
+
+  validateIdentity() {
+    this.clearIdentityValidation()
+    const hasIdentity = [this.nameTarget, this.domainTarget, this.usernameTarget].some((target) => target.value.trim() !== "")
+
+    if (!hasIdentity) {
+      this.usernameTarget.setCustomValidity("Enter a name, domain, or username.")
+    }
+  }
+
+  clearIdentityValidation() {
+    this.usernameTarget.setCustomValidity("")
   }
 
   get existingPayloadPresent() {

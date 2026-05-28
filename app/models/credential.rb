@@ -1,8 +1,7 @@
 class Credential < ApplicationRecord
   CATEGORIES = %w[login note api_key server database].freeze
 
-  validates :name, presence: true, length: { maximum: 255 }
-  validates :domain, presence: true
+  validates :name, length: { maximum: 255 }
   validates :category, inclusion: { in: CATEGORIES }
   validates :encrypted_secret_payload, presence: true
 
