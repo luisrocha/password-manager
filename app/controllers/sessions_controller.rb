@@ -14,7 +14,7 @@ class SessionsController < ApplicationController
 
     session[:master_unlocked_at] = Time.current.to_i
     session.delete(:unlock_challenge)
-    redirect_to credentials_path, notice: "Vault unlocked."
+    redirect_to credentials_path, notice: "Vault unlocked.", status: :see_other
   end
 
   def verify_backup_key
