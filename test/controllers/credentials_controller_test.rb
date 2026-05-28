@@ -122,7 +122,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Include symbols"
   end
 
-  test "index does not render encrypted secret payload or plaintext secret fields" do
+  test "index renders reveal controls without plaintext secret fields" do
     Credential.create!(
       name: "GitHub",
       domain: "github.com",
@@ -133,10 +133,15 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     get credentials_url
 
     assert_response :success
-    assert_not_includes response.body, ENCRYPTED_PAYLOAD
+    assert_includes response.body, "data-controller=\"credential-reveal\""
+    assert_includes response.body, "data-credential-reveal-encrypted-payload-value="
+    assert_includes response.body, "data-credential-reveal-target=\"username\""
+    assert_includes response.body, "data-action=\"credential-reveal#revealPassword\""
+    assert_includes response.body, "data-action=\"credential-reveal#revealNotes\""
     assert_not_includes response.body, "alice@example.com"
     assert_not_includes response.body, "top-secret-password"
-    assert_includes response.body, "Encrypted"
+    assert_includes response.body, "Decrypting..."
+    assert_includes response.body, "Hidden"
   end
 
   test "updates a credential" do
