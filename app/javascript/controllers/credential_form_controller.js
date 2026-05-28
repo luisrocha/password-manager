@@ -15,6 +15,8 @@ export default class extends Controller {
 
     event.preventDefault()
 
+    if (!this.element.reportValidity()) return
+
     if (!isVaultUnlocked()) {
       this.visit("/unlock")
       return
@@ -26,14 +28,19 @@ export default class extends Controller {
       notes: this.notesTarget.value
     }
 
+    let encryptedPayload
+
     try {
-      this.encryptedPayloadTarget.value = await encryptText(JSON.stringify(payload))
-      this.submitting = true
-      this.submitEncryptedForm(event.submitter)
+      encryptedPayload = await encryptText(JSON.stringify(payload))
     } catch {
       this.submitting = false
       this.visit("/unlock")
+      return
     }
+
+    this.encryptedPayloadTarget.value = encryptedPayload
+    this.submitting = true
+    this.submitEncryptedForm(event.submitter)
   }
 
   async decryptExistingPayload() {
