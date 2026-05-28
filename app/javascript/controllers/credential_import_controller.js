@@ -128,8 +128,6 @@ export default class extends Controller {
       if ([row.name, row.domain, row.username].every((value) => value === "")) {
         throw new Error(`Row ${index + 2} is missing name, domain, or username.`)
       }
-
-      if (row.password === "") throw new Error(`Row ${index + 2} is missing password.`)
     })
   }
 
