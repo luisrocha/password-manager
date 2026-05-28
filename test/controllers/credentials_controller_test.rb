@@ -198,6 +198,24 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "", credential.domain
   end
 
+  test "encrypted csv import allows rows with blank imported password" do
+    assert_difference("Credential.count", 1) do
+      post import_credentials_url, params: {
+        encrypted_import: "1",
+        credentials: {
+          "0" => {
+            name: "Internal Jenkins",
+            domain: "http://10.112.27.133:8080/hudson/login",
+            category: "login",
+            encrypted_secret_payload: ENCRYPTED_PAYLOAD
+          }
+        }
+      }
+    end
+
+    assert_redirected_to credentials_url
+  end
+
   test "missing import file redirects to import page" do
     post import_credentials_url
 
