@@ -43,7 +43,7 @@ export default class extends Controller {
   async toggleField(field) {
     if (this[`${field}ButtonTarget`].dataset.revealed === "true") {
       this[`${field}Target`].textContent = "Hidden"
-      this[`${field}ButtonTarget`].textContent = "Reveal"
+      this.updateToggleButton(field, false)
       this[`${field}ButtonTarget`].dataset.revealed = "false"
       return
     }
@@ -51,8 +51,15 @@ export default class extends Controller {
     const revealed = await this.revealField(field)
     if (!revealed) return
 
-    this[`${field}ButtonTarget`].textContent = "Hide"
+    this.updateToggleButton(field, true)
     this[`${field}ButtonTarget`].dataset.revealed = "true"
+  }
+
+  updateToggleButton(field, revealed) {
+    const label = `${revealed ? "Hide" : "Reveal"} ${field}`
+    this[`${field}ButtonTarget`].setAttribute("aria-label", label)
+    this[`${field}ButtonTarget`].setAttribute("title", label)
+    this[`${field}ButtonTarget`].classList.toggle("is-visible", revealed)
   }
 
   visit(path) {
