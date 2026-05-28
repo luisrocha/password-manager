@@ -1,6 +1,8 @@
 require "test_helper"
 
 class CredentialsControllerTest < ActionDispatch::IntegrationTest
+  ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nopaque-test-payload\n-----END PGP MESSAGE-----".freeze
+
   setup do
     unlock!
   end
@@ -15,6 +17,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   test "new renders successfully" do
     get new_credential_url
     assert_response :success
+    assert_includes response.body, "data-controller=\"credential-form\""
     assert_includes response.body, "data-controller=\"password-generator\""
     assert_includes response.body, "data-action=\"password-generator#generate\""
   end
@@ -32,12 +35,17 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
           domain: "example.com",
           category: "login",
           username: "alice",
-          password: "secret"
+          password: "secret",
+          encrypted_secret_payload: ENCRYPTED_PAYLOAD
         }
       }
     end
 
     assert_redirected_to credentials_url
+    credential = Credential.last
+    assert_equal ENCRYPTED_PAYLOAD, credential.encrypted_secret_payload
+    assert_not credential.attributes.key?("username")
+    assert_not credential.attributes.key?("password")
   end
 
   test "invalid create renders new page" do
@@ -50,18 +58,19 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "Add Credential"
+    assert_includes response.body, "data-controller=\"credential-form\""
     assert_includes response.body, "data-controller=\"password-generator\""
     assert_includes response.body, "data-action=\"password-generator#generate\""
   end
 
-  test "imports a csv file" do
+  test "csv import post fails closed until browser encryption is implemented" do
     file = fixture_file_upload("1password.csv", "text/csv")
 
-    assert_difference("Credential.count", 2) do
+    assert_no_difference("Credential.count") do
       post import_credentials_url, params: { file: file }
     end
 
-    assert_redirected_to credentials_url
+    assert_redirected_to import_credentials_url
   end
 
   test "missing import file redirects to import page" do
@@ -71,8 +80,8 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "search filters results" do
-    Credential.create!(name: "GitHub", domain: "github.com", category: "login")
-    Credential.create!(name: "Mail", domain: "mail.example.com", category: "login")
+    Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    Credential.create!(name: "Mail", domain: "mail.example.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     get credentials_url, params: { q: "git" }
 
@@ -86,13 +95,14 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
       name: "GitHub",
       domain: "github.com",
       category: "login",
-      password: "existing-secret"
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
 
     get edit_credential_url(credential)
 
     assert_response :success
-    assert_includes response.body, "existing-secret"
+    assert_includes response.body, "data-controller=\"credential-form\""
+    assert_includes response.body, "data-credential-form-encrypted-payload-value="
     assert_includes response.body, "data-controller=\"password-generator\""
     assert_includes response.body, "data-password-generator-target=\"visibilityButton\""
     assert_includes response.body, "data-action=\"password-generator#toggleVisibility\""
@@ -104,22 +114,25 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "updates a credential" do
-    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login")
+    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    updated_payload = "-----BEGIN PGP MESSAGE-----\nupdated-test-payload\n-----END PGP MESSAGE-----"
 
     patch credential_url(credential), params: {
       credential: {
         name: "GitHub Personal",
         domain: "github.com",
-        category: "login"
+        category: "login",
+        encrypted_secret_payload: updated_payload
       }
     }
 
     assert_redirected_to credentials_url
     assert_equal "GitHub Personal", credential.reload.name
+    assert_equal updated_payload, credential.encrypted_secret_payload
   end
 
   test "deletes a credential" do
-    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login")
+    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     assert_difference("Credential.count", -1) do
       delete credential_url(credential)
