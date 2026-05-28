@@ -41,6 +41,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
           category: "login",
           username: "alice",
           password: "secret",
+          notes: "private notes",
           encrypted_secret_payload: ENCRYPTED_PAYLOAD
         }
       }
@@ -51,6 +52,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal ENCRYPTED_PAYLOAD, credential.encrypted_secret_payload
     assert_not credential.attributes.key?("username")
     assert_not credential.attributes.key?("password")
+    assert_not credential.attributes.key?("notes")
   end
 
   test "invalid create renders new page" do
@@ -153,6 +155,30 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to credentials_url
     assert_equal "GitHub Personal", credential.reload.name
     assert_equal updated_payload, credential.encrypted_secret_payload
+  end
+
+  test "update ignores plaintext secret params" do
+    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    updated_payload = "-----BEGIN PGP MESSAGE-----\nupdated-test-payload\n-----END PGP MESSAGE-----"
+
+    patch credential_url(credential), params: {
+      credential: {
+        name: "GitHub",
+        domain: "github.com",
+        category: "login",
+        username: "alice",
+        password: "secret",
+        notes: "private notes",
+        encrypted_secret_payload: updated_payload
+      }
+    }
+
+    assert_redirected_to credentials_url
+    credential.reload
+    assert_equal updated_payload, credential.encrypted_secret_payload
+    assert_not credential.attributes.key?("username")
+    assert_not credential.attributes.key?("password")
+    assert_not credential.attributes.key?("notes")
   end
 
   test "deletes a credential" do
