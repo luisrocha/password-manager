@@ -7,9 +7,13 @@ class CredentialTest < ActiveSupport::TestCase
     credential = Credential.new
 
     assert_not credential.valid?
-    assert_includes credential.errors[:name], "can't be blank"
-    assert_includes credential.errors[:domain], "can't be blank"
     assert_includes credential.errors[:encrypted_secret_payload], "can't be blank"
+  end
+
+  test "allows blank name and domain because username is encrypted" do
+    credential = Credential.new(category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+
+    assert credential.valid?
   end
 
   test "searches by name and domain" do

@@ -125,8 +125,11 @@ export default class extends Controller {
     if (rows.length === 0) throw new Error("That CSV file has no rows to import.")
 
     rows.forEach((row, index) => {
-      const missing = ["name", "domain", "username", "password"].filter((field) => row[field] === "")
-      if (missing.length > 0) throw new Error(`Row ${index + 2} is missing ${missing.join(", ")}.`)
+      if ([row.name, row.domain, row.username].every((value) => value === "")) {
+        throw new Error(`Row ${index + 2} is missing name, domain, or username.`)
+      }
+
+      if (row.password === "") throw new Error(`Row ${index + 2} is missing password.`)
     })
   }
 

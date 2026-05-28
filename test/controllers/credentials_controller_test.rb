@@ -19,9 +19,9 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "data-controller=\"credential-form\""
     assert_not_includes response.body, "data-credential-form-encrypted-payload-value"
-    assert_select "input[name='credential[name]'][required]"
-    assert_select "input[name='credential[domain]'][required]"
-    assert_select "input#credential_username_plaintext[required]"
+    assert_select "input[name='credential[name]'][required]", false
+    assert_select "input[name='credential[domain]'][required]", false
+    assert_select "input#credential_username_plaintext[required]", false
     assert_select "input#credential_password_plaintext[required]"
     assert_includes response.body, "data-controller=\"password-generator\""
     assert_includes response.body, "data-action=\"password-generator#generate\""
@@ -55,6 +55,51 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_not credential.attributes.key?("username")
     assert_not credential.attributes.key?("password")
     assert_not credential.attributes.key?("notes")
+  end
+
+  test "creates a credential with only name metadata" do
+    assert_difference("Credential.count", 1) do
+      post credentials_url, params: {
+        credential: {
+          name: "Example",
+          domain: "",
+          category: "login",
+          encrypted_secret_payload: ENCRYPTED_PAYLOAD
+        }
+      }
+    end
+
+    assert_redirected_to credentials_url
+  end
+
+  test "creates a credential with only domain metadata" do
+    assert_difference("Credential.count", 1) do
+      post credentials_url, params: {
+        credential: {
+          name: "",
+          domain: "example.com",
+          category: "login",
+          encrypted_secret_payload: ENCRYPTED_PAYLOAD
+        }
+      }
+    end
+
+    assert_redirected_to credentials_url
+  end
+
+  test "creates a credential with encrypted username only" do
+    assert_difference("Credential.count", 1) do
+      post credentials_url, params: {
+        credential: {
+          name: "",
+          domain: "",
+          category: "login",
+          encrypted_secret_payload: ENCRYPTED_PAYLOAD
+        }
+      }
+    end
+
+    assert_redirected_to credentials_url
   end
 
   test "invalid create renders new page" do
@@ -114,10 +159,10 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
         encrypted_import: "1",
         credentials: {
           "0" => {
-            name: "GitHub",
+            name: "",
             domain: "",
             category: "login",
-            encrypted_secret_payload: ENCRYPTED_PAYLOAD
+            encrypted_secret_payload: ""
           },
           "1" => {
             name: "Server SSH",
@@ -130,6 +175,27 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to import_credentials_url
+  end
+
+  test "encrypted csv import allows rows without name or domain" do
+    assert_difference("Credential.count", 1) do
+      post import_credentials_url, params: {
+        encrypted_import: "1",
+        credentials: {
+          "0" => {
+            name: "",
+            domain: "",
+            category: "login",
+            encrypted_secret_payload: ENCRYPTED_PAYLOAD
+          }
+        }
+      }
+    end
+
+    assert_redirected_to credentials_url
+    credential = Credential.last
+    assert_equal "", credential.name
+    assert_equal "", credential.domain
   end
 
   test "missing import file redirects to import page" do
