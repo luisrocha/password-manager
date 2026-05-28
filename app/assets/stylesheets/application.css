@@ -254,6 +254,12 @@ code {
   margin-right: 0.4rem;
 }
 
+.inline-reveal-button {
+  margin-left: 0.4rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.9rem;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
