@@ -1,5 +1,6 @@
 pin "application"
 pin "vault_crypto"
+pin "credential_importer"
 pin "openpgp", to: "openpgp.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
