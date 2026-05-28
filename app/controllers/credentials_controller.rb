@@ -26,6 +26,11 @@ class CredentialsController < ApplicationController
   def import
     return if request.get?
 
+    if params[:encrypted_import] == "1"
+      import_encrypted_credentials
+      return
+    end
+
     redirect_to import_credentials_path, alert: "CSV import must be encrypted in the browser before it can be stored."
   end
 
@@ -51,5 +56,27 @@ class CredentialsController < ApplicationController
 
   def credential_params
     params.require(:credential).permit(:name, :domain, :category, :encrypted_secret_payload)
+  end
+
+  def import_encrypted_credentials
+    credentials = encrypted_import_params.map { |attrs| Credential.new(attrs) }
+    errors = credentials.each_with_index.filter_map do |credential, index|
+      "Row #{index + 1}: #{credential.errors.full_messages.to_sentence}" unless credential.valid?
+    end
+
+    if credentials.empty?
+      redirect_to import_credentials_path, alert: "No encrypted credentials were submitted."
+    elsif errors.any?
+      redirect_to import_credentials_path, alert: errors.to_sentence
+    else
+      Credential.transaction { credentials.each(&:save!) }
+      redirect_to credentials_path, notice: "Imported #{credentials.count} credentials."
+    end
+  end
+
+  def encrypted_import_params
+    params.permit(credentials: [:name, :domain, :category, :encrypted_secret_payload])
+      .fetch(:credentials, {})
+      .values
   end
 end
