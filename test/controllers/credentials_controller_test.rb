@@ -19,6 +19,10 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "data-controller=\"credential-form\""
     assert_not_includes response.body, "data-credential-form-encrypted-payload-value"
+    assert_select "input[name='credential[name]'][required]"
+    assert_select "input[name='credential[domain]'][required]"
+    assert_select "input#credential_username_plaintext[required]"
+    assert_select "input#credential_password_plaintext[required]"
     assert_includes response.body, "data-controller=\"password-generator\""
     assert_includes response.body, "data-action=\"password-generator#generate\""
   end
