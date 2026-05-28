@@ -1,12 +1,9 @@
 class Credential < ApplicationRecord
-  encrypts :username
-  encrypts :password
-  encrypts :notes
-
   CATEGORIES = %w[login note api_key server database].freeze
 
   validates :name, presence: true, length: { maximum: 255 }
   validates :category, inclusion: { in: CATEGORIES }
+  validates :encrypted_secret_payload, presence: true
 
   scope :sorted, -> { order(:name, :domain) }
 

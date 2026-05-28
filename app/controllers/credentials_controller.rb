@@ -26,22 +26,7 @@ class CredentialsController < ApplicationController
   def import
     return if request.get?
 
-    upload = params[:file]
-    if upload.blank?
-      redirect_to import_credentials_path, alert: "Please choose a CSV file to import."
-      return
-    end
-
-    result = OnePasswordImporter.new(upload).call
-
-    if result.errors.empty?
-      redirect_to credentials_path, notice: "Imported #{result.created_count} item(s)."
-    else
-      redirect_to import_credentials_path,
-        alert: "Imported #{result.created_count} item(s) with errors: #{result.errors.first(5).join(' | ')}"
-    end
-  rescue ArgumentError => e
-    redirect_to import_credentials_path, alert: e.message
+    redirect_to import_credentials_path, alert: "CSV import must be encrypted in the browser before it can be stored."
   end
 
   def update
@@ -65,6 +50,6 @@ class CredentialsController < ApplicationController
   end
 
   def credential_params
-    params.require(:credential).permit(:name, :domain, :username, :password, :notes, :category)
+    params.require(:credential).permit(:name, :domain, :category, :encrypted_secret_payload)
   end
 end

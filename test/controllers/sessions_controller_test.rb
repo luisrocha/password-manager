@@ -64,7 +64,11 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create rejects first key registration when credentials already exist" do
-    Credential.create!(name: "Existing", category: "login")
+    Credential.create!(
+      name: "Existing",
+      category: "login",
+      encrypted_secret_payload: "-----BEGIN PGP MESSAGE-----\nopaque-test-payload\n-----END PGP MESSAGE-----"
+    )
 
     get unlock_url
 
