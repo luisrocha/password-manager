@@ -68,6 +68,10 @@ input[type="submit"]:not([class]) {
   --icon-url: url("icons/chevron-down.svg");
 }
 
+.icon-copy {
+  --icon-url: url("icons/copy.svg");
+}
+
 .icon-sparkles {
   --icon-url: url("icons/sparkles.svg");
 }
@@ -113,6 +117,19 @@ code {
   color: #fff;
   padding: 0.35rem;
   vertical-align: middle;
+}
+
+.credential-field-button {
+  width: 1.85rem;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding: 0.3rem;
+}
+
+.copy-feedback {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .search-icon-button,
