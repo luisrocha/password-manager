@@ -1,5 +1,4 @@
 ENV["RAILS_ENV"] ||= "test"
-ENV["MASTER_PASSWORD"] ||= "test-master-password"
 require_relative "../config/environment"
 require "rails/test_help"
 
@@ -15,7 +14,7 @@ module ActiveSupport
   end
 end
 
-module MasterPasswordIntegrationHelper
+module VaultUnlockIntegrationHelper
   TEST_UNLOCK_KEY = OpenSSL::PKey::EC.generate("prime256v1")
 
   def unlock!
@@ -35,5 +34,5 @@ module MasterPasswordIntegrationHelper
 end
 
 class ActionDispatch::IntegrationTest
-  include MasterPasswordIntegrationHelper
+  include VaultUnlockIntegrationHelper
 end

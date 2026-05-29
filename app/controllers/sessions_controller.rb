@@ -1,5 +1,5 @@
 class SessionsController < ApplicationController
-  skip_before_action :require_master_password, only: %i[new create verify_backup_key]
+  skip_before_action :require_vault_unlock, only: %i[new create verify_backup_key]
 
   def new
     session[:unlock_challenge] = SecureRandom.urlsafe_base64(32)
@@ -12,7 +12,7 @@ class SessionsController < ApplicationController
       return
     end
 
-    session[:master_unlocked_at] = Time.current.to_i
+    session[:vault_unlocked_at] = Time.current.to_i
     session.delete(:unlock_challenge)
     redirect_to credentials_path, notice: "Vault unlocked.", status: :see_other
   end
