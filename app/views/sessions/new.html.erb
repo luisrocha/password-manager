@@ -1,6 +1,6 @@
 <% content_for :title, "Password Manager" %>
 
-<main class="credentials-page" data-controller="unlock">
+<main class="mx-auto flex min-h-screen w-full max-w-lg items-center px-4 py-8 sm:px-6" data-controller="unlock">
   <div
     class="hidden"
     data-unlock-target="challenge"
@@ -8,83 +8,73 @@
     data-vault-registered="<%= @vault_registered %>"
   ></div>
 
-  <section class="panel">
-    <h1>Password Manager</h1>
-    <p data-unlock-target="description">Preparing vault unlock.</p>
+  <section class="w-full rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <div class="mb-6 space-y-2">
+      <h1 class="text-3xl font-semibold text-slate-950">Password Manager</h1>
+      <p class="text-sm leading-6 text-slate-600" data-unlock-target="description">Preparing vault unlock.</p>
+    </div>
 
     <% if notice.present? %>
-      <p class="flash notice"><%= notice %></p>
+      <p class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"><%= notice %></p>
     <% end %>
     <% if alert.present? %>
-      <p class="flash alert"><%= alert %></p>
+      <p class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"><%= alert %></p>
     <% end %>
 
-    <div class="unlock-flow hidden" data-unlock-target="flow">
+    <div class="hidden space-y-5" data-unlock-target="flow">
       <p class="hidden" data-unlock-target="status"></p>
 
-      <div class="vault-panel hidden" data-unlock-target="setupPanel">
-        <h2 data-unlock-target="setupTitle">Create vault key</h2>
+      <div class="hidden space-y-4" data-unlock-target="setupPanel">
+        <span class="hidden" data-unlock-target="setupTitle">Create vault key</span>
 
         <%= form_with url: unlock_path, method: :post, local: true, data: { action: "submit->unlock#setup", unlock_target: "setupForm" } do |f| %>
-          <div class="grid">
-            <%= f.label :setup_master_password, "New master password" %>
-            <%= f.password_field :setup_master_password, required: true, autocomplete: "new-password", data: { unlock_target: "setupPassword" } %>
+          <div class="space-y-4">
+            <%= f.password_field :setup_master_password, required: true, autocomplete: "new-password", placeholder: "New master password", aria: { label: "New master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupPassword" } %>
 
-            <%= f.label :setup_master_password_confirmation, "Confirm master password" %>
-            <%= f.password_field :setup_master_password_confirmation, required: true, autocomplete: "new-password", data: { unlock_target: "setupConfirmation" } %>
+            <%= f.password_field :setup_master_password_confirmation, required: true, autocomplete: "new-password", placeholder: "Confirm master password", aria: { label: "Confirm master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupConfirmation" } %>
           </div>
 
-          <div class="form-actions">
-            <%= f.submit "Create Vault Key" %>
-            <%= link_to "Import backup", "#", data: { action: "unlock#showImport" } %>
+          <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <%= f.submit "Create Vault Key", class: "inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800" %>
+            <%= link_to "Import backup", "#", class: "inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50", data: { action: "unlock#showImport" } %>
           </div>
         <% end %>
 
-        <div class="form-actions">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
           <a
-            class="button-link hidden"
+            class="hidden inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800"
             download="password-manager-vault-backup.json"
             data-unlock-target="backupDownload"
           >Download Backup</a>
           <button
             type="button"
-            class="secondary-button-link hidden"
+            class="hidden inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             data-unlock-target="continueButton"
             data-action="unlock#continueToVault"
           >Continue to Vault</button>
         </div>
       </div>
 
-      <div class="vault-panel hidden" data-unlock-target="unlockPanel">
-        <h2>Unlock vault</h2>
-
+      <div class="hidden space-y-4" data-unlock-target="unlockPanel">
         <%= form_with url: unlock_path, method: :post, local: true, data: { action: "submit->unlock#unlock" } do |f| %>
-          <div class="grid">
-            <%= f.label :local_master_password, "Master password" %>
-            <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", data: { unlock_target: "unlockPassword" } %>
-          </div>
+          <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", placeholder: "Master password", aria: { label: "Master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "unlockPassword" } %>
 
-          <div class="form-actions">
-            <%= f.submit "Unlock" %>
-            <%= link_to "Import backup", "#", data: { action: "unlock#showImport" } %>
+          <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <%= f.submit "Unlock", class: "inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800" %>
+            <%= link_to "Import backup", "#", class: "inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50", data: { action: "unlock#showImport" } %>
           </div>
         <% end %>
       </div>
 
-      <div class="vault-panel hidden" data-unlock-target="importPanel">
-        <h2>Import vault backup</h2>
-
+      <div class="hidden space-y-4" data-unlock-target="importPanel">
         <form data-action="submit->unlock#importBackup">
-          <div class="grid">
-            <label for="vault_backup_file">Backup file</label>
-            <input id="vault_backup_file" type="file" accept="application/json,.json" required data-unlock-target="backupFile">
-          </div>
+          <input class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20" id="vault_backup_file" type="file" accept="application/json,.json" required aria-label="Backup file" data-unlock-target="backupFile">
 
-          <div class="form-actions">
-            <button type="submit">Import Backup</button>
-            <button type="button" class="secondary-button-link" data-unlock-target="cancelImportButton" data-action="unlock#cancelImport">Cancel</button>
+          <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button class="inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800" type="submit">Import Backup</button>
+            <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" data-unlock-target="cancelImportButton" data-action="unlock#cancelImport">Cancel</button>
             <% unless @vault_registered %>
-              <%= link_to "Create new key", "#", data: { action: "unlock#showSetup" } %>
+              <%= link_to "Create new key", "#", class: "inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50", data: { action: "unlock#showSetup" } %>
             <% end %>
           </div>
         </form>

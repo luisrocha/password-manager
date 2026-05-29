@@ -14,3 +14,5 @@ group :development, :test do
   gem "dotenv-rails"
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 end
+
+gem "tailwindcss-rails", "~> 4.4"
