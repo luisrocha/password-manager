@@ -56,12 +56,28 @@ input[type="submit"]:not([class]) {
   --icon-url: url("icons/pencil.svg");
 }
 
+.icon-search {
+  --icon-url: url("icons/search.svg");
+}
+
+.icon-menu {
+  --icon-url: url("icons/menu.svg");
+}
+
+.icon-chevron-down {
+  --icon-url: url("icons/chevron-down.svg");
+}
+
 .icon-sparkles {
   --icon-url: url("icons/sparkles.svg");
 }
 
 .icon-trash {
   --icon-url: url("icons/trash.svg");
+}
+
+.icon-x {
+  --icon-url: url("icons/x.svg");
 }
 
 .password-visibility-button {
@@ -99,6 +115,32 @@ code {
   vertical-align: middle;
 }
 
+.search-icon-button,
+.menu-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.4rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 0;
+}
+
+.menu-icon-button {
+  border-color: var(--line);
+  background: #fff;
+  color: #334155;
+}
+
+.chevron-icon {
+  min-width: 1rem;
+  padding: 0;
+}
+
 .reveal-secret-button {
   --icon-url: url("icons/eye.svg");
   margin-left: 0.4rem;
@@ -108,10 +150,19 @@ code {
   --icon-url: url("icons/eye-off.svg");
 }
 
-details summary {
+.menu-summary,
+.credential-summary {
+  list-style: none;
   cursor: pointer;
-  color: var(--accent);
-  font-size: 0.88rem;
+}
+
+.menu-summary::-webkit-details-marker,
+.credential-summary::-webkit-details-marker {
+  display: none;
+}
+
+.credential-card[open] .credential-card-chevron {
+  transform: rotate(180deg);
 }
 
 .action-link {
