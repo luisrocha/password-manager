@@ -5,10 +5,9 @@
 Rails application for a self-hosted password manager.
 
 ## Implemented Features
-- Master-password gate for all web access
-- Unlock/lock flow with a 12-hour authenticated web session window
-- Browser API unlock flow using master password + encrypted JWT bearer token
-- Encrypted storage of sensitive fields (`username`, `password`, `notes`) using Active Record Encryption
+- Client-side vault unlock flow with a 12-hour authenticated web session window
+- Browser API unlock flow using signed vault challenges and encrypted JWT bearer tokens
+- Encrypted storage of sensitive fields (`username`, `password`, `notes`) using client-side encrypted payloads
 - Credential management from the web UI (create, list, edit, delete)
 - Search credentials by `name` and `domain`
 - Sensitive fields hidden by default in the UI and revealed on demand
@@ -27,9 +26,6 @@ bin/setup
 ## Environment
 Copy `.env.example` values into your local environment file as needed. Keep real secrets out of git.
 
-Set your master password:
-- MASTER_PASSWORD (required)
-
 Additional browser API environment variables:
 - `PASSWORD_MANAGER_BROWSER_JWT_TTL_SECONDS` (optional, default `900`)
 - `PASSWORD_MANAGER_API_TOKEN` (required by `POST /api/browser/auth/unlock`)
@@ -43,4 +39,3 @@ bin/rails server
 ```bash
 bin/rails test
 ```
-

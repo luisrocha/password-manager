@@ -24,7 +24,7 @@ class Api::Browser::AuthControllerTest < ActionDispatch::IntegrationTest
 
   test "returns encrypted jwt token for valid signed challenge" do
     VaultSigningKey.create!(
-      public_key_spki: Base64.strict_encode64(MasterPasswordIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+      public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
     )
     post "/api/browser/auth/unlock", headers: @auth_header, as: :json
     challenge_id = response.parsed_body.fetch("challengeId")
@@ -34,7 +34,7 @@ class Api::Browser::AuthControllerTest < ActionDispatch::IntegrationTest
       params: {
         challengeId: challenge_id,
         unlockSignature: Base64.strict_encode64(
-          MasterPasswordIntegrationHelper::TEST_UNLOCK_KEY.sign(OpenSSL::Digest::SHA256.new, challenge)
+          VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.sign(OpenSSL::Digest::SHA256.new, challenge)
         )
       },
       headers: @auth_header,
@@ -48,7 +48,7 @@ class Api::Browser::AuthControllerTest < ActionDispatch::IntegrationTest
 
   test "rejects invalid signed challenge" do
     VaultSigningKey.create!(
-      public_key_spki: Base64.strict_encode64(MasterPasswordIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+      public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
     )
     post "/api/browser/auth/unlock", headers: @auth_header, as: :json
 
