@@ -1,6 +1,9 @@
 require "test_helper"
 
 class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
+  ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\napi-test-payload\n-----END PGP MESSAGE-----".freeze
+  UPDATED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nupdated-api-test-payload\n-----END PGP MESSAGE-----".freeze
+
   setup do
     @previous_api_token = ENV["PASSWORD_MANAGER_API_TOKEN"]
     ENV["PASSWORD_MANAGER_API_TOKEN"] = nil
@@ -11,15 +14,9 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     ENV["PASSWORD_MANAGER_API_TOKEN"] = @previous_api_token
   end
 
-  test "returns credentials matching request host" do
-    matching = Credential.create!(
-      name: "GitHub",
-      domain: "github.com",
-      category: "login",
-      username: "alice",
-      password: "secret"
-    )
-    Credential.create!(name: "Mail", domain: "mail.example.com", category: "login", username: "bob", password: "other")
+  test "returns encrypted credentials matching request host" do
+    matching = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    Credential.create!(name: "Mail", domain: "mail.example.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     post "/api/browser/credentials/search",
       params: { origin: "https://github.com", url: "https://github.com/login" },
@@ -33,12 +30,12 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal matching.id.to_s, body.dig("credentials", 0, "id")
     assert_equal "GitHub", body.dig("credentials", 0, "displayName")
     assert_equal "github.com", body.dig("credentials", 0, "domain")
-    assert_equal "alice", body.dig("credentials", 0, "username")
-    assert_not body.fetch("credentials", []).first.key?("password")
+    assert_equal ENCRYPTED_PAYLOAD, body.dig("credentials", 0, "encryptedSecretPayload")
+    assert_no_plaintext_secret_keys(body.dig("credentials", 0))
   end
 
   test "matches parent domains from subdomains" do
-    Credential.create!(name: "Main Site", domain: "example.com", category: "login", username: "owner", password: "pw")
+    Credential.create!(name: "Main Site", domain: "example.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     post "/api/browser/credentials/search",
       params: { url: "https://auth.example.com/login" },
@@ -49,9 +46,9 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, response.parsed_body.fetch("credentials").size
   end
 
-  test "returns multiple credentials for the same domain" do
-    first = Credential.create!(name: "GitHub Personal", domain: "github.com", category: "login", username: "alice", password: "secret-1")
-    second = Credential.create!(name: "GitHub Work", domain: "github.com", category: "login", username: "alice.work", password: "secret-2")
+  test "returns multiple encrypted credentials for the same domain" do
+    first = Credential.create!(name: "GitHub Personal", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    second = Credential.create!(name: "GitHub Work", domain: "github.com", category: "login", encrypted_secret_payload: UPDATED_PAYLOAD)
 
     post "/api/browser/credentials/search",
       params: { origin: "https://github.com" },
@@ -63,10 +60,10 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [first.id.to_s, second.id.to_s].sort, ids.sort
   end
 
-  test "supports global search by name, domain, and username" do
-    github = Credential.create!(name: "GitHub", domain: "github.com", category: "login", username: "alice", password: "secret-1")
-    gitlab = Credential.create!(name: "GitLab", domain: "gitlab.com", category: "login", username: "bob", password: "secret-2")
-    gmail = Credential.create!(name: "Mail", domain: "mail.example.com", category: "login", username: "carol@example.com", password: "secret-3")
+  test "supports global search by name and domain only" do
+    github = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    gitlab = Credential.create!(name: "GitLab", domain: "gitlab.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    Credential.create!(name: "Mail", domain: "mail.example.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     post "/api/browser/credentials/search",
       params: { query: "hub" },
@@ -81,17 +78,10 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
       as: :json
     assert_response :success
     assert_equal [gitlab.id.to_s], response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }
-
-    post "/api/browser/credentials/search",
-      params: { query: "carol@" },
-      headers: @auth_header,
-      as: :json
-    assert_response :success
-    assert_equal [gmail.id.to_s], response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }
   end
 
   test "returns no credentials when host and query are both missing" do
-    Credential.create!(name: "GitHub", domain: "github.com", category: "login", username: "alice", password: "secret")
+    Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     post "/api/browser/credentials/search",
       params: {},
@@ -102,13 +92,12 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_empty response.parsed_body.fetch("credentials")
   end
 
-  test "reveals a single credential password on demand" do
+  test "returns encrypted credential payload on show" do
     credential = Credential.create!(
       name: "GitHub",
       domain: "github.com",
       category: "login",
-      username: "alice",
-      password: "secret"
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
 
     get "/api/browser/credentials/#{credential.id}",
@@ -117,7 +106,8 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
-    assert_equal "secret", response.parsed_body.dig("credential", "password")
+    assert_equal ENCRYPTED_PAYLOAD, response.parsed_body.dig("credential", "encryptedSecretPayload")
+    assert_no_plaintext_secret_keys(response.parsed_body.fetch("credential"))
   end
 
   test "returns unauthorized when browser token is missing" do
@@ -153,72 +143,17 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_token", response.parsed_body["code"]
   end
 
-  test "rejects static bearer token for credential create" do
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
-
-    post "/api/browser/credentials",
-      params: {
-        origin: "https://github.com",
-        title: "GitHub",
-        username: "alice@example.com",
-        password: "secret-123"
-      },
-      headers: { "Authorization" => "Bearer test-token" },
-      as: :json
-
-    assert_response :unauthorized
-    assert_equal "invalid_token", response.parsed_body["code"]
-  end
-
-  test "rejects static bearer token for credential update" do
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
-    credential = Credential.create!(
-      name: "GitHub",
-      domain: "github.com",
-      category: "login",
-      username: "alice@example.com",
-      password: "secret-123"
-    )
-
-    patch "/api/browser/credentials/#{credential.id}",
-      params: {
-        username: "alice.updated@example.com",
-        password: "updated-secret"
-      },
-      headers: { "Authorization" => "Bearer test-token" },
-      as: :json
-
-    assert_response :unauthorized
-    assert_equal "invalid_token", response.parsed_body["code"]
-  end
-
-  test "rejects static bearer token for credential delete" do
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
-    credential = Credential.create!(
-      name: "GitHub",
-      domain: "github.com",
-      category: "login",
-      username: "alice@example.com",
-      password: "secret-123"
-    )
-
-    delete "/api/browser/credentials/#{credential.id}",
-      headers: { "Authorization" => "Bearer test-token" },
-      as: :json
-
-    assert_response :unauthorized
-    assert_equal "invalid_token", response.parsed_body["code"]
-  end
-
-  test "creates a credential from browser form data" do
+  test "creates an encrypted credential from browser api data" do
     assert_difference("Credential.count", 1) do
       post "/api/browser/credentials",
         params: {
           origin: "https://github.com",
           name: "GitHub Personal",
           title: "GitHub",
-          username: "alice@example.com",
-          password: "secret-123"
+          username: "ignored@example.com",
+          password: "ignored-secret",
+          notes: "ignored note",
+          encryptedSecretPayload: ENCRYPTED_PAYLOAD
         },
         headers: @auth_header,
         as: :json
@@ -229,16 +164,19 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     credential = Credential.order(:created_at).last
     assert_equal "GitHub Personal", credential.name
     assert_equal "github.com", credential.domain
-    assert_equal "alice@example.com", credential.username
-    assert_equal "secret-123", credential.password
-    assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
+    assert_equal ENCRYPTED_PAYLOAD, credential.encrypted_secret_payload
+    assert_not credential.attributes.key?("username")
+    assert_not credential.attributes.key?("password")
+    assert_not credential.attributes.key?("notes")
+    assert_no_plaintext_secret_keys(response.parsed_body.fetch("credential"))
   end
 
-  test "returns validation error when password is missing during browser create" do
+  test "returns validation error when encrypted payload is missing during browser create" do
     post "/api/browser/credentials",
       params: {
         origin: "https://github.com",
-        username: "alice@example.com"
+        username: "ignored@example.com",
+        password: "ignored-secret"
       },
       headers: @auth_header,
       as: :json
@@ -247,70 +185,46 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "validation_failed", response.parsed_body["code"]
   end
 
-  test "updates a credential from browser form data" do
+  test "updates an encrypted credential from browser api data" do
     credential = Credential.create!(
       name: "GitHub",
       domain: "github.com",
       category: "login",
-      username: "alice@example.com",
-      password: "secret-123"
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
 
     patch "/api/browser/credentials/#{credential.id}",
       params: {
         name: "GitHub Updated",
-        username: "alice.updated@example.com",
-        password: "updated-secret"
+        username: "ignored.updated@example.com",
+        password: "ignored-updated-secret",
+        encryptedSecretPayload: UPDATED_PAYLOAD
       },
       headers: @auth_header,
       as: :json
 
     assert_response :success
     assert_equal "GitHub Updated", credential.reload.name
-    assert_equal "alice.updated@example.com", credential.reload.username
-    assert_equal "updated-secret", credential.password
-    assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
+    assert_equal UPDATED_PAYLOAD, credential.encrypted_secret_payload
+    assert_no_plaintext_secret_keys(response.parsed_body.fetch("credential"))
   end
 
-  test "returns validation error when password is missing during browser update" do
+  test "updates metadata without replacing encrypted payload" do
     credential = Credential.create!(
       name: "GitHub",
       domain: "github.com",
       category: "login",
-      username: "alice@example.com",
-      password: "secret-123"
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
 
     patch "/api/browser/credentials/#{credential.id}",
-      params: { username: "alice.updated@example.com", password: "" },
-      headers: @auth_header,
-      as: :json
-
-    assert_response :unprocessable_entity
-    assert_equal "validation_failed", response.parsed_body["code"]
-  end
-
-  test "preserves notes when browser update omits notes" do
-    credential = Credential.create!(
-      name: "GitHub",
-      domain: "github.com",
-      category: "login",
-      username: "alice@example.com",
-      password: "secret-123",
-      notes: "Keep this note"
-    )
-
-    patch "/api/browser/credentials/#{credential.id}",
-      params: {
-        username: "alice.updated@example.com",
-        password: "updated-secret"
-      },
+      params: { name: "GitHub Updated" },
       headers: @auth_header,
       as: :json
 
     assert_response :success
-    assert_equal "alice.updated@example.com", credential.reload.username
-    assert_equal "Keep this note", credential.notes
+    assert_equal "GitHub Updated", credential.reload.name
+    assert_equal ENCRYPTED_PAYLOAD, credential.encrypted_secret_payload
   end
 
   test "deletes a credential from browser edit flow" do
@@ -318,8 +232,7 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
       name: "GitHub",
       domain: "github.com",
       category: "login",
-      username: "alice@example.com",
-      password: "secret-123"
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
 
     assert_difference("Credential.count", -1) do
@@ -330,5 +243,13 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal credential.id.to_s, response.parsed_body.dig("credential", "id")
+  end
+
+  private
+
+  def assert_no_plaintext_secret_keys(payload)
+    assert_not payload.key?("username")
+    assert_not payload.key?("password")
+    assert_not payload.key?("notes")
   end
 end

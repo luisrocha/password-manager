@@ -12,20 +12,10 @@ class Api::Browser::CredentialsController < Api::BaseController
   end
 
   def create
-    if credential_create_params[:password].to_s.empty?
-      render json: {
-        error: "Password can't be blank",
-        code: "validation_failed"
-      }, status: :unprocessable_entity
-      return
-    end
-
     credential = Credential.new(
       name: browser_credential_name,
       domain: browser_credential_domain,
-      username: credential_create_params[:username].to_s.strip,
-      password: credential_create_params[:password].to_s,
-      notes: credential_create_params[:notes].to_s.strip.presence,
+      encrypted_secret_payload: encrypted_secret_payload(credential_create_params),
       category: "login"
     )
 
@@ -45,29 +35,17 @@ class Api::Browser::CredentialsController < Api::BaseController
     credential = Credential.find(params[:id])
 
     render json: {
-      credential: credential_metadata(credential).merge(
-        password: credential.password.to_s
-      )
+      credential: credential_payload(credential)
     }
   end
 
   def update
     credential = Credential.find(params[:id])
 
-    if credential_update_params[:password].to_s.empty?
-      render json: {
-        error: "Password can't be blank",
-        code: "validation_failed"
-      }, status: :unprocessable_entity
-      return
-    end
-
     attributes = {
-      name: credential_update_name.presence || credential.name,
-      username: credential_update_params[:username].to_s.strip,
-      password: credential_update_params[:password].to_s
+      name: credential_update_name.presence || credential.name
     }
-    attributes[:notes] = credential_update_params[:notes].to_s.strip.presence if credential_update_params.key?(:notes)
+    attributes[:encrypted_secret_payload] = encrypted_secret_payload(credential_update_params) if encrypted_secret_payload(credential_update_params).present?
 
     if credential.update(attributes)
       render json: {
@@ -93,11 +71,11 @@ class Api::Browser::CredentialsController < Api::BaseController
   private
 
   def credential_create_params
-    params.permit(:name, :displayName, :domain, :origin, :url, :frameUrl, :frame_url, :title, :username, :password, :notes)
+    params.permit(:name, :displayName, :domain, :origin, :url, :frameUrl, :frame_url, :title, :encrypted_secret_payload, :encryptedSecretPayload)
   end
 
   def credential_update_params
-    params.permit(:name, :displayName, :username, :password, :notes)
+    params.permit(:name, :displayName, :encrypted_secret_payload, :encryptedSecretPayload)
   end
 
   def extract_hosts
@@ -200,12 +178,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     )
     sql_name_domain_ids = sql_name_domain_scope.pluck(:id)
 
-    username_ids = []
-    base_scope.reorder(nil).where.not(id: sql_name_domain_ids).find_each(batch_size: 200) do |credential|
-      username_ids << credential.id if credential.username.to_s.downcase.include?(normalized_query)
-    end
-
-    Credential.where(id: (sql_name_domain_ids + username_ids)).sorted.to_a
+    Credential.where(id: sql_name_domain_ids).sorted.to_a
   end
 
   def credential_metadata(credential)
@@ -213,7 +186,15 @@ class Api::Browser::CredentialsController < Api::BaseController
       id: credential.id.to_s,
       displayName: credential.name,
       domain: credential.domain.to_s,
-      username: credential.username.to_s
+      encryptedSecretPayload: credential.encrypted_secret_payload
     }
+  end
+
+  def credential_payload(credential)
+    credential_metadata(credential)
+  end
+
+  def encrypted_secret_payload(permitted_params)
+    permitted_params[:encrypted_secret_payload].presence || permitted_params[:encryptedSecretPayload].presence
   end
 end

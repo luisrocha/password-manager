@@ -2,8 +2,13 @@ class Api::Browser::AuthController < ActionController::API
   before_action :authenticate_static_api_token!
 
   def unlock
-    unless MasterPassword.valid?(unlock_params[:master_password] || unlock_params[:masterPassword])
-      render json: { error: "Invalid master password", code: "invalid_master_password" }, status: :unauthorized
+    if unlock_params[:challenge_id].blank? && unlock_params[:challengeId].blank?
+      issue_challenge
+      return
+    end
+
+    unless valid_unlock_proof?
+      render json: { error: "Invalid unlock proof", code: "invalid_unlock_proof" }, status: :unauthorized
       return
     end
 
@@ -18,7 +23,45 @@ class Api::Browser::AuthController < ActionController::API
   private
 
   def unlock_params
-    params.permit(:master_password, :masterPassword)
+    params.permit(:challenge_id, :challengeId, :unlock_signature, :unlockSignature, :signing_public_key_spki, :signingPublicKeySpki)
+  end
+
+  def issue_challenge
+    challenge = SecureRandom.urlsafe_base64(48)
+
+    render json: {
+      challengeId: challenge_verifier.generate(challenge, expires_in: 5.minutes, purpose: :browser_api_unlock),
+      challenge: challenge
+    }
+  end
+
+  def valid_unlock_proof?
+    registered_key = VaultSigningKey.first
+    challenge = verified_challenge
+
+    return false if registered_key.blank? || challenge.blank?
+
+    VaultUnlockProof.valid?(
+      challenge: challenge,
+      signature: unlock_signature,
+      public_key_spki: registered_key.public_key_spki
+    )
+  end
+
+  def challenge_id
+    unlock_params[:challenge_id].presence || unlock_params[:challengeId].presence
+  end
+
+  def unlock_signature
+    unlock_params[:unlock_signature].presence || unlock_params[:unlockSignature].presence
+  end
+
+  def verified_challenge
+    challenge_verifier.verified(challenge_id, purpose: :browser_api_unlock)
+  end
+
+  def challenge_verifier
+    Rails.application.message_verifier(:browser_api_unlock_challenge)
   end
 
   def authenticate_static_api_token!
