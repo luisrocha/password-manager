@@ -10,6 +10,7 @@ export default class extends Controller {
     if (this.submitting) return
 
     event.preventDefault()
+    this.clearStatus()
 
     if (!this.element.reportValidity()) return
 
@@ -26,7 +27,7 @@ export default class extends Controller {
       this.submitting = true
       this.submitEncryptedImport(event.submitter)
     } catch (error) {
-      this.setStatus(error.message || "Import failed.")
+      this.setError(error.message || "Import failed.")
     }
   }
 
@@ -52,6 +53,17 @@ export default class extends Controller {
 
   setStatus(message) {
     this.statusTarget.textContent = message
+    this.statusTarget.className = "mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+  }
+
+  setError(message) {
+    this.statusTarget.textContent = message
+    this.statusTarget.className = "mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+  }
+
+  clearStatus() {
+    this.statusTarget.textContent = ""
+    this.statusTarget.className = "hidden"
   }
 
   submitEncryptedImport(submitter) {
