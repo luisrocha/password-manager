@@ -126,12 +126,32 @@ input[type="submit"]:not([class]) {
   -webkit-mask: var(--icon-url) center / contain no-repeat;
 }
 
+.icon-eye {
+  --icon-url: url("icons/eye.svg");
+}
+
+.icon-eye-off {
+  --icon-url: url("icons/eye-off.svg");
+}
+
+.icon-pencil {
+  --icon-url: url("icons/pencil.svg");
+}
+
+.icon-sparkles {
+  --icon-url: url("icons/sparkles.svg");
+}
+
+.icon-trash {
+  --icon-url: url("icons/trash.svg");
+}
+
 .password-visibility-button {
-  --icon-url: var(--show-icon-url);
+  --icon-url: url("icons/eye.svg");
 }
 
 .password-visibility-button.is-visible {
-  --icon-url: var(--hide-icon-url);
+  --icon-url: url("icons/eye-off.svg");
 }
 
 .password-generator-panel {
@@ -177,10 +197,6 @@ input[type="submit"]:not([class]) {
 [data-password-generator-target="lengthValue"] {
   color: var(--ink);
   font-weight: 700;
-}
-
-.hidden {
-  display: none !important;
 }
 
 .button-link {
@@ -267,12 +283,12 @@ code {
 }
 
 .reveal-secret-button {
-  --icon-url: var(--show-icon-url);
+  --icon-url: url("icons/eye.svg");
   margin-left: 0.4rem;
 }
 
 .reveal-secret-button.is-visible {
-  --icon-url: var(--hide-icon-url);
+  --icon-url: url("icons/eye-off.svg");
 }
 
 .table-wrap {
