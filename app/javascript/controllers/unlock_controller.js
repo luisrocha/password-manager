@@ -54,7 +54,7 @@ export default class extends Controller {
       this.setupTitleTarget.textContent = "Back up vault key"
       this.prepareBackupDownload()
       this.continueButtonTarget.classList.remove("hidden")
-      this.setDescription("Download a backup before continuing to the vault.")
+      this.setDescription("Download the vault key backup before continuing to the vault.")
       this.showStatus("Vault key created.")
     } catch {
       this.showError("Vault setup failed. Please try again.")
@@ -106,7 +106,7 @@ export default class extends Controller {
       this.showUnlock()
     } else if (this.vaultRegistered) {
       this.showImport()
-      this.showStatus("Vault key not found on this browser. Import your backup to continue.")
+      this.showStatus("Vault key not found on this browser. Import your vault key backup to continue.")
     } else {
       this.showSetup()
     }
@@ -127,7 +127,7 @@ export default class extends Controller {
   showUnlock(event) {
     event?.preventDefault()
     this.hideAllPanels()
-    this.setDescription("Enter your master password to decrypt the local vault key.")
+    this.setDescription("Enter your master password to unlock the vault.")
     this.unlockPanelTarget.classList.remove("hidden")
     this.unlockPasswordTarget.focus()
   }
@@ -135,7 +135,7 @@ export default class extends Controller {
   showImport(event) {
     event?.preventDefault()
     this.hideAllPanels()
-    this.setDescription("Import your vault backup to use this browser.")
+    this.setDescription("Import your vault key backup to use this browser.")
     this.cancelImportButtonTarget.classList.remove("hidden")
     this.importPanelTarget.classList.remove("hidden")
     this.backupFileTarget.focus()
@@ -148,13 +148,13 @@ export default class extends Controller {
       } else if (this.vaultRegistered) {
         this.showImport()
         this.cancelImportButtonTarget.classList.add("hidden")
-        this.showStatus("Vault key not found on this browser. Import your backup to continue.")
+        this.showStatus("Vault key not found on this browser. Import your vault key backup to continue.")
       } else {
         this.showSetup()
       }
     } catch {
       this.showImport()
-      this.showError("Stored vault data could not be read. Import a backup to continue.")
+      this.showError("Stored vault data could not be read. Import your vault key backup to continue.")
     }
   }
 
@@ -200,12 +200,12 @@ export default class extends Controller {
 
   showStatus(message) {
     this.statusTarget.textContent = message
-    this.statusTarget.className = "flash notice"
+    this.statusTarget.className = "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
   }
 
   showError(message) {
     this.statusTarget.textContent = message
-    this.statusTarget.className = "flash alert"
+    this.statusTarget.className = "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
   }
 
   clearStatus() {
