@@ -24,6 +24,18 @@ export default class extends Controller {
     await this.toggleField("notes")
   }
 
+  async copyUsername(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    await this.copyField("username", event.currentTarget)
+  }
+
+  async copyPassword(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    await this.copyField("password", event.currentTarget)
+  }
+
   async revealField(field) {
     if (!isVaultUnlocked()) {
       this.visit("/unlock")
@@ -31,7 +43,7 @@ export default class extends Controller {
     }
 
     try {
-      const payload = JSON.parse(await decryptText(this.encryptedPayloadValue))
+      const payload = await this.decryptPayload()
       this[`${field}Target`].textContent = payload[field] || "-"
       return true
     } catch {
@@ -60,6 +72,100 @@ export default class extends Controller {
     this[`${field}ButtonTarget`].setAttribute("aria-label", label)
     this[`${field}ButtonTarget`].setAttribute("title", label)
     this[`${field}ButtonTarget`].classList.toggle("is-visible", revealed)
+  }
+
+  async copyField(field, button) {
+    if (!isVaultUnlocked()) {
+      this.visit("/unlock")
+      return
+    }
+
+    let payload
+
+    try {
+      payload = await this.decryptPayload()
+    } catch {
+      this.visit("/unlock")
+      return
+    }
+
+    try {
+      await this.writeClipboard(payload[field] || "")
+      this.confirmCopy(button, field)
+    } catch {
+      this.failCopy(button, field)
+    }
+  }
+
+  confirmCopy(button, field) {
+    const label = `Copy ${field}`
+    const status = this.copyStatusFor(button)
+
+    button.setAttribute("aria-label", `Copied ${field}`)
+    button.setAttribute("title", `Copied ${field}`)
+    this.showCopyStatus(status, "Copied")
+    window.setTimeout(() => {
+      button.setAttribute("aria-label", label)
+      button.setAttribute("title", label)
+      this.hideCopyStatus(status)
+    }, 1200)
+  }
+
+  failCopy(button, field) {
+    const label = `Copy ${field}`
+    const status = this.copyStatusFor(button)
+
+    button.setAttribute("aria-label", `Could not copy ${field}`)
+    button.setAttribute("title", `Could not copy ${field}`)
+    this.showCopyStatus(status, "Copy failed")
+    window.setTimeout(() => {
+      button.setAttribute("aria-label", label)
+      button.setAttribute("title", label)
+      this.hideCopyStatus(status)
+    }, 1200)
+  }
+
+  copyStatusFor(button) {
+    return button.closest("[data-copy-group]")?.querySelector("[data-copy-status]")
+  }
+
+  showCopyStatus(status, message) {
+    if (!status) return
+
+    status.textContent = message
+    status.classList.remove("hidden")
+  }
+
+  hideCopyStatus(status) {
+    if (!status) return
+
+    status.textContent = ""
+    status.classList.add("hidden")
+  }
+
+  async writeClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return
+    }
+
+    const textarea = document.createElement("textarea")
+    textarea.value = text
+    textarea.setAttribute("readonly", "")
+    textarea.style.position = "fixed"
+    textarea.style.opacity = "0"
+    document.body.append(textarea)
+    textarea.select()
+
+    try {
+      if (!document.execCommand("copy")) throw new Error("copy_failed")
+    } finally {
+      textarea.remove()
+    }
+  }
+
+  async decryptPayload() {
+    return JSON.parse(await decryptText(this.encryptedPayloadValue))
   }
 
   visit(path) {
