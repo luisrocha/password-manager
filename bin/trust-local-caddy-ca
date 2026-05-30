@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cert_dir="tmp/certs"
+cert_path="${cert_dir}/password-manager-local-root.crt"
+
+mkdir -p "${cert_dir}"
+docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt "${cert_path}"
+
+if command -v trust >/dev/null 2>&1; then
+  sudo trust anchor --store "${cert_path}"
+  echo "Trusted Caddy's local root certificate for system browsers."
+else
+  echo "Copied Caddy's local root certificate to ${cert_path}."
+  echo "Install it into your OS or browser trust store to avoid HTTPS privacy warnings."
+fi
+
+echo "Restart your browser after trusting the certificate."

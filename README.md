@@ -35,6 +35,41 @@ Additional browser API environment variables:
 bin/rails server
 ```
 
+## Run With Docker Compose
+The primary Compose file runs Rails in production mode behind Caddy, which serves
+HTTPS locally and redirects HTTP to HTTPS.
+
+1. Add the default host to your machine:
+   ```bash
+   sudo sh -c 'echo "127.0.0.1 vault.localhost" >> /etc/hosts'
+   ```
+2. Copy `docker-compose.env.example` values into `docker-compose.env` or `.env` and replace the
+   placeholders. Generate `SECRET_KEY_BASE` with:
+   ```bash
+   bin/rails secret
+   ```
+3. Start the app:
+   ```bash
+   docker compose up --build
+   ```
+4. Open:
+   ```text
+   https://vault.localhost
+   ```
+
+Change `PASSWORD_MANAGER_HOST` in `.env` to use a different local host name.
+Caddy uses an internal certificate authority, so your browser may ask you to
+trust the local certificate before the page opens cleanly.
+
+To trust the local Caddy certificate authority on the host machine:
+```bash
+bin/trust-local-caddy-ca
+```
+
+Then restart your browser. Firefox may still require importing
+`tmp/certs/password-manager-local-root.crt` manually in:
+`Settings -> Privacy & Security -> Certificates -> View Certificates`.
+
 ## Test
 ```bash
 bin/rails test

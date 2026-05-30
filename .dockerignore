@@ -1,0 +1,10 @@
+.git
+.ruby-lsp
+.bundle
+.env*
+config/*.key
+config/credentials.yml.enc
+log/*
+tmp/*
+storage/*
+public/assets

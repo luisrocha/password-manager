@@ -1,0 +1,9 @@
+{$PASSWORD_MANAGER_HOST:vault.localhost} {
+	encode zstd gzip
+	tls internal
+
+	reverse_proxy web:3000 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Ssl on
+	}
+}

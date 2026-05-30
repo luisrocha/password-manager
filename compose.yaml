@@ -1,0 +1,41 @@
+services:
+  web:
+    build: .
+    env_file:
+      - path: docker-compose.env
+        required: false
+      - path: .env
+        required: false
+    environment:
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      RAILS_SERVE_STATIC_FILES: "true"
+      DATABASE_URL: sqlite3:///rails/storage/production.sqlite3
+    volumes:
+      - password_manager_storage:/rails/storage
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - web
+    env_file:
+      - path: docker-compose.env
+        required: false
+      - path: .env
+        required: false
+    ports:
+      - "${PASSWORD_MANAGER_HTTP_PORT:-80}:80"
+      - "${PASSWORD_MANAGER_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  password_manager_storage:
+  caddy_data:
+  caddy_config:
