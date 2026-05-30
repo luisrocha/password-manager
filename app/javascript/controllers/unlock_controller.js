@@ -25,6 +25,7 @@ export default class extends Controller {
     "description",
     "sessionForm",
     "status",
+    "backupActions",
     "backupDownload",
     "continueButton",
     "challenge",
@@ -53,7 +54,8 @@ export default class extends Controller {
       this.setupFormTarget.classList.add("hidden")
       this.setupTitleTarget.textContent = "Back up vault key"
       this.prepareBackupDownload()
-      this.continueButtonTarget.classList.remove("hidden")
+      this.backupActionsTarget.classList.remove("hidden")
+      this.backupActionsTarget.classList.add("flex")
       this.setDescription("Download the vault key backup before continuing to the vault.")
       this.showStatus("Vault key created.")
     } catch {
@@ -71,7 +73,7 @@ export default class extends Controller {
       await unlockVault(masterPassword)
       await this.unlockRailsSession()
     } catch {
-      this.showError("Could not unlock the local vault with that master password.")
+      this.showError("Invalid master password.")
     }
   }
 
@@ -118,8 +120,8 @@ export default class extends Controller {
     this.setDescription("Create a local vault key for this browser.")
     this.setupTitleTarget.textContent = "Create vault key"
     this.setupFormTarget.classList.remove("hidden")
-    this.backupDownloadTarget.classList.add("hidden")
-    this.continueButtonTarget.classList.add("hidden")
+    this.backupActionsTarget.classList.add("hidden")
+    this.backupActionsTarget.classList.remove("flex")
     this.setupPanelTarget.classList.remove("hidden")
     this.setupPasswordTarget.focus()
   }
