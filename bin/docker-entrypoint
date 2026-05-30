@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+
+rm -f /rails/tmp/pids/server.pid
+
+if [ "${RAILS_ENV}" = "production" ]; then
+  if [ -z "${SECRET_KEY_BASE}" ]; then
+    echo "SECRET_KEY_BASE must be set for production."
+    exit 1
+  fi
+
+  bin/rails db:prepare
+fi
+
+exec "$@"
