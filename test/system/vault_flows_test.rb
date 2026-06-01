@@ -54,6 +54,7 @@ class VaultFlowsTest < ApplicationSystemTestCase
 
     backup_json = page.evaluate_script("window.localStorage.getItem('passwordManager.encryptedPrivateKey')")
     assert backup_json.present?, "Expected vault backup data in browser storage"
+    assert_equal "Argon2id", JSON.parse(backup_json).dig("kdf", "name")
 
     backup_path = Rails.root.join("tmp", "system-vault-backup-#{SecureRandom.hex(8)}.json")
     File.write(backup_path, backup_json)

@@ -1,11 +1,15 @@
+import argon2 from "argon2_bridge"
 import * as openpgp from "openpgp"
 
 const STORAGE_KEY = "passwordManager.encryptedPrivateKey"
 const BACKUP_VERSION = 1
-const KDF_ITERATIONS = 600000
+const ARGON2_TIME = 2
+const ARGON2_MEMORY_KIB = 19456
+const ARGON2_PARALLELISM = 1
 const SALT_BYTES = 16
 const IV_BYTES = 12
 const AES_KEY_LENGTH = 256
+const AES_KEY_BYTES = AES_KEY_LENGTH / 8
 const TEXT_ENCODER = new TextEncoder()
 const TEXT_DECODER = new TextDecoder()
 
@@ -156,9 +160,12 @@ async function buildEncryptedVault(privateKey, publicKey, signingKeys, masterPas
       iv: encodeBase64(signingIv)
     },
     kdf: {
-      name: "PBKDF2",
-      hash: "SHA-256",
-      iterations: KDF_ITERATIONS,
+      name: "Argon2id",
+      version: 19,
+      time: ARGON2_TIME,
+      memoryKiB: ARGON2_MEMORY_KIB,
+      parallelism: ARGON2_PARALLELISM,
+      hashLength: AES_KEY_BYTES,
       salt: encodeBase64(salt)
     },
     encryption: {
@@ -190,7 +197,7 @@ async function generateSigningKeys() {
 async function decryptPrivateKey(vault, masterPassword) {
   const salt = decodeBase64(vault.kdf.salt)
   const iv = decodeBase64(vault.encryption.iv)
-  const key = await deriveWrappingKey(masterPassword, salt)
+  const key = await deriveWrappingKeyForVault(vault, masterPassword, salt)
   const privateKey = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
     key,
@@ -202,7 +209,7 @@ async function decryptPrivateKey(vault, masterPassword) {
 
 async function decryptSigningKey(vault, masterPassword) {
   const salt = decodeBase64(vault.kdf.salt)
-  const key = await deriveWrappingKey(masterPassword, salt)
+  const key = await deriveWrappingKeyForVault(vault, masterPassword, salt)
   const privateKeyJwk = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: decodeBase64(vault.signing.iv) },
     key,
@@ -222,26 +229,45 @@ async function decryptSigningKey(vault, masterPassword) {
 }
 
 async function deriveWrappingKey(masterPassword, salt) {
-  const baseKey = await crypto.subtle.importKey(
-    "raw",
-    TEXT_ENCODER.encode(masterPassword),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  )
+  const result = await argon2.hash({
+    pass: masterPassword,
+    salt,
+    time: ARGON2_TIME,
+    mem: ARGON2_MEMORY_KIB,
+    parallelism: ARGON2_PARALLELISM,
+    hashLen: AES_KEY_BYTES,
+    type: argon2.ArgonType.Argon2id
+  })
 
-  return crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      hash: "SHA-256",
-      salt,
-      iterations: KDF_ITERATIONS
-    },
-    baseKey,
-    { name: "AES-GCM", length: AES_KEY_LENGTH },
+  return importAesWrappingKey(result.hash)
+}
+
+async function importAesWrappingKey(rawKey) {
+  return crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
     false,
     ["encrypt", "decrypt"]
   )
+}
+
+async function deriveWrappingKeyForVault(vault, masterPassword, salt) {
+  if (vault.kdf.name === "Argon2id") {
+    const result = await argon2.hash({
+      pass: masterPassword,
+      salt,
+      time: vault.kdf.time,
+      mem: vault.kdf.memoryKiB,
+      parallelism: vault.kdf.parallelism,
+      hashLen: vault.kdf.hashLength,
+      type: argon2.ArgonType.Argon2id
+    })
+
+    return importAesWrappingKey(result.hash)
+  }
+
+  throw new Error("vault_unsupported")
 }
 
 function validateVault(vault) {
@@ -250,8 +276,21 @@ function validateVault(vault) {
   if (vault.signing?.algorithm !== "ECDSA-P256-SHA256") throw new Error("vault_invalid")
   if (!vault.signing.publicKeySpki || !vault.signing.encryptedPrivateKey) throw new Error("vault_invalid")
   if (!vault.signing.iv) throw new Error("vault_invalid")
-  if (vault.kdf?.name !== "PBKDF2" || !vault.kdf.salt) throw new Error("vault_invalid")
+  if (!validKdf(vault.kdf)) throw new Error("vault_invalid")
   if (vault.encryption?.name !== "AES-GCM" || !vault.encryption.iv) throw new Error("vault_invalid")
+}
+
+function validKdf(kdf) {
+  if (kdf?.name === "Argon2id") {
+    return kdf.version === 19 &&
+      kdf.time > 0 &&
+      kdf.memoryKiB >= 8192 &&
+      kdf.parallelism > 0 &&
+      kdf.hashLength === AES_KEY_BYTES &&
+      !!kdf.salt
+  }
+
+  return false
 }
 
 function assertUnlocked() {
