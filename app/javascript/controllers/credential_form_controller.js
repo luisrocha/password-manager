@@ -8,9 +8,12 @@ export default class extends Controller {
 
   connect() {
     this.clearIdentityValidation = this.clearIdentityValidation.bind(this)
+    this.clearSensitiveFields = this.clearSensitiveFields.bind(this)
     this.nameTarget.addEventListener("input", this.clearIdentityValidation)
     this.domainTarget.addEventListener("input", this.clearIdentityValidation)
     this.usernameTarget.addEventListener("input", this.clearIdentityValidation)
+    document.addEventListener("turbo:before-cache", this.clearSensitiveFields)
+    window.addEventListener("vault:lock", this.clearSensitiveFields)
 
     if (this.existingPayloadPresent) this.decryptExistingPayload()
   }
@@ -19,6 +22,8 @@ export default class extends Controller {
     this.nameTarget.removeEventListener("input", this.clearIdentityValidation)
     this.domainTarget.removeEventListener("input", this.clearIdentityValidation)
     this.usernameTarget.removeEventListener("input", this.clearIdentityValidation)
+    document.removeEventListener("turbo:before-cache", this.clearSensitiveFields)
+    window.removeEventListener("vault:lock", this.clearSensitiveFields)
   }
 
   async submit(event) {
@@ -98,6 +103,13 @@ export default class extends Controller {
 
   clearIdentityValidation() {
     this.usernameTarget.setCustomValidity("")
+  }
+
+  clearSensitiveFields() {
+    this.usernameTarget.value = ""
+    this.passwordTarget.value = ""
+    this.notesTarget.value = ""
+    this.encryptedPayloadTarget.value = ""
   }
 
   get existingPayloadPresent() {

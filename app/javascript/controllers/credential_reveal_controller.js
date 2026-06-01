@@ -7,7 +7,16 @@ export default class extends Controller {
   static values = { encryptedPayload: String }
 
   connect() {
+    this.clearSecrets = this.clearSecrets.bind(this)
+    document.addEventListener("turbo:before-cache", this.clearSecrets)
+    window.addEventListener("vault:lock", this.clearSecrets)
+
     this.revealUsername()
+  }
+
+  disconnect() {
+    document.removeEventListener("turbo:before-cache", this.clearSecrets)
+    window.removeEventListener("vault:lock", this.clearSecrets)
   }
 
   async revealUsername() {
@@ -166,6 +175,23 @@ export default class extends Controller {
 
   async decryptPayload() {
     return JSON.parse(await decryptText(this.encryptedPayloadValue))
+  }
+
+  clearSecrets() {
+    if (this.hasUsernameTarget) this.usernameTarget.textContent = "Decrypting..."
+    if (this.hasPasswordTarget) this.passwordTarget.textContent = "Hidden"
+    if (this.hasNotesTarget) this.notesTarget.textContent = "Hidden"
+
+    if (this.hasPasswordButtonTarget) {
+      this.updateToggleButton("password", false)
+      this.passwordButtonTarget.dataset.revealed = "false"
+    }
+    if (this.hasNotesButtonTarget) {
+      this.updateToggleButton("notes", false)
+      this.notesButtonTarget.dataset.revealed = "false"
+    }
+
+    this.element.querySelectorAll("[data-copy-status]").forEach((status) => this.hideCopyStatus(status))
   }
 
   visit(path) {
