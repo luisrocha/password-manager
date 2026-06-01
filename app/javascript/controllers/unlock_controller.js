@@ -180,12 +180,13 @@ export default class extends Controller {
     if (!this.vaultRegistered) return
 
     const backup = JSON.parse(serializedBackup)
+    const headers = { "Content-Type": "application/json" }
+    const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+    if (csrfToken) headers["X-CSRF-Token"] = csrfToken
+
     const response = await fetch("/unlock/verify_backup_key", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": document.querySelector("meta[name='csrf-token']").content
-      },
+      headers,
       body: JSON.stringify({
         signing_public_key_spki: backup.signing?.publicKeySpki
       })

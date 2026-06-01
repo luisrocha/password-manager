@@ -17,51 +17,43 @@ Rails application for a self-hosted password manager.
 - Ruby `3.4.7`
 - Bundler
 - SQLite3
+- Docker and Docker Compose, for containerized production-like, development, and test runs
 
-## Setup
-```bash
-bin/setup
-```
+## Usage
 
-## Environment
+### Environment
 Copy `.env.example` values into your local environment file as needed. Keep real secrets out of git.
 
 Additional browser API environment variables:
 - `PASSWORD_MANAGER_BROWSER_JWT_TTL_SECONDS` (optional, default `900`)
 - `PASSWORD_MANAGER_API_TOKEN` (required by `POST /api/browser/auth/unlock`)
 
-## Run
-```bash
-bin/rails server
-```
-
-## Run With Docker Compose
+### Run With Docker Compose
 The primary Compose file runs Rails in production mode behind Caddy, which serves
 HTTPS locally and redirects HTTP to HTTPS.
 
-1. Add the default host to your machine:
-   ```bash
-   sudo sh -c 'echo "127.0.0.1 vault.localhost" >> /etc/hosts'
-   ```
-2. Copy `docker-compose.env.example` values into `docker-compose.env` or `.env` and replace the
+1. Copy `docker-compose.env.example` values into `docker-compose.env` or `.env` and replace the
    placeholders. Generate `SECRET_KEY_BASE` with:
    ```bash
    bin/rails secret
    ```
-3. Start the app:
+2. Start the app:
    ```bash
    docker compose up --build
    ```
-4. Open:
+3. Open:
    ```text
    https://vault.localhost
    ```
 
-Change `PASSWORD_MANAGER_HOST` in `.env` to use a different local host name.
-Caddy uses an internal certificate authority, so your browser may ask you to
-trust the local certificate before the page opens cleanly.
+`vault.localhost` should resolve to `127.0.0.1` on modern systems without an
+`/etc/hosts` entry. If your machine does not resolve it, either add a hosts
+entry or change `PASSWORD_MANAGER_HOST` to another local host name.
 
-To trust the local Caddy certificate authority on the host machine:
+Caddy uses an internal certificate authority, so your browser may ask you to
+trust the local certificate before the page opens cleanly. To trust the local
+Caddy certificate authority on the host machine:
+
 ```bash
 bin/trust-local-caddy-ca
 ```
@@ -70,7 +62,37 @@ Then restart your browser. Firefox may still require importing
 `tmp/certs/password-manager-local-root.crt` manually in:
 `Settings -> Privacy & Security -> Certificates -> View Certificates`.
 
-## Test
+## Development
+
+### Running the app locally
+```bash
+bin/setup
+bin/rails server
+```
+
+Then open `http://localhost:3000`.
+
+### Running the development app in Docker
+```bash
+docker compose build dev
+docker compose run --rm dev bin/rails db:prepare
+docker compose --profile dev up dev
+```
+
+Then open `http://localhost:3000`.
+
+### Running tests locally
 ```bash
 bin/rails test
+bin/rails test:system
+```
+
+### Running tests in Docker
+The `tests` and `system-tests` services reuse the development image, so one
+build is enough for both.
+
+```bash
+docker compose build dev
+docker compose run --rm tests
+docker compose run --rm system-tests
 ```
