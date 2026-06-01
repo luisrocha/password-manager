@@ -18,6 +18,7 @@ export default class extends Controller {
     "importPanel",
     "setupPassword",
     "setupConfirmation",
+    "setupToken",
     "unlockPassword",
     "backupFile",
     "cancelImportButton",
@@ -30,7 +31,8 @@ export default class extends Controller {
     "continueButton",
     "challenge",
     "signature",
-    "signingPublicKey"
+    "signingPublicKey",
+    "sessionSetupToken"
   ]
 
   connect() {
@@ -44,6 +46,7 @@ export default class extends Controller {
     this.clearStatus()
 
     const masterPassword = this.setupPasswordTarget.value
+    this.pendingSetupToken = this.setupToken
     if (masterPassword !== this.setupConfirmationTarget.value) {
       this.showError("Master password confirmation does not match.")
       return
@@ -117,7 +120,7 @@ export default class extends Controller {
   showSetup(event) {
     event?.preventDefault()
     this.hideAllPanels()
-    this.setDescription("Create a local vault key for this browser.")
+    this.setDescription(this.setupTokenRequired ? "Create a local vault key and enter the setup token for this server." : "Create a local vault key for this browser.")
     this.setupTitleTarget.textContent = "Create vault key"
     this.setupFormTarget.classList.remove("hidden")
     this.backupActionsTarget.classList.add("hidden")
@@ -129,7 +132,7 @@ export default class extends Controller {
   showUnlock(event) {
     event?.preventDefault()
     this.hideAllPanels()
-    this.setDescription("Enter your master password to unlock the vault.")
+    this.setDescription(this.setupTokenRequired ? "Enter your master password and setup token to register this vault key." : "Enter your master password to unlock the vault.")
     this.unlockPanelTarget.classList.remove("hidden")
     this.unlockPasswordTarget.focus()
   }
@@ -165,6 +168,7 @@ export default class extends Controller {
 
     this.signatureTarget.value = proof.signature
     this.signingPublicKeyTarget.value = proof.signingPublicKeySpki
+    if (this.hasSessionSetupTokenTarget) this.sessionSetupTokenTarget.value = this.setupToken
     this.sessionFormTarget.requestSubmit()
   }
 
@@ -222,5 +226,15 @@ export default class extends Controller {
 
   get vaultRegistered() {
     return this.challengeTarget.dataset.vaultRegistered === "true"
+  }
+
+  get setupTokenRequired() {
+    return this.challengeTarget.dataset.setupTokenRequired === "true"
+  }
+
+  get setupToken() {
+    if (!this.hasSetupTokenTarget) return ""
+
+    return this.setupTokenTargets.find((target) => target.offsetParent !== null)?.value || this.pendingSetupToken || ""
   }
 }

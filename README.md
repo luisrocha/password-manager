@@ -25,6 +25,7 @@ Rails application for a self-hosted password manager.
 Copy `.env.example` values into your local environment file as needed. Keep real secrets out of git.
 
 Additional browser API environment variables:
+- `PASSWORD_MANAGER_SETUP_TOKEN` (required before the first vault key is registered)
 - `PASSWORD_MANAGER_BROWSER_JWT_TTL_SECONDS` (optional, default `900`)
 - `PASSWORD_MANAGER_API_TOKEN` (required by `POST /api/browser/auth/unlock`)
 

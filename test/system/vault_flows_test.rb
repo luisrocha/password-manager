@@ -2,6 +2,20 @@ require "application_system_test_case"
 
 class VaultFlowsTest < ApplicationSystemTestCase
   MASTER_PASSWORD = "correct horse battery staple"
+  SETUP_TOKEN = "system-test-setup-token"
+
+  setup do
+    @original_setup_token = ENV["PASSWORD_MANAGER_SETUP_TOKEN"]
+    ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = SETUP_TOKEN
+  end
+
+  teardown do
+    if @original_setup_token.nil?
+      ENV.delete("PASSWORD_MANAGER_SETUP_TOKEN")
+    else
+      ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = @original_setup_token
+    end
+  end
 
   test "main vault flows" do
     backup_path = create_new_vault_key
@@ -27,10 +41,11 @@ class VaultFlowsTest < ApplicationSystemTestCase
     visit unlock_path
 
     assert_text "Password Manager"
-    assert_text "Create a local vault key for this browser."
+    assert_text "Create a local vault key and enter the setup token for this server."
 
     fill_in "New master password", with: MASTER_PASSWORD
     fill_in "Confirm master password", with: MASTER_PASSWORD
+    fill_in "Setup token", with: SETUP_TOKEN
     click_button "Create Vault Key"
 
     assert_text "Vault key created."
