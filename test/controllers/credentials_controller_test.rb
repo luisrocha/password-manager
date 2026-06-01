@@ -4,7 +4,16 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
   ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nopaque-test-payload\n-----END PGP MESSAGE-----".freeze
 
   setup do
+    @previous_vault_session_ttl = ENV["PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES"]
     unlock!
+  end
+
+  teardown do
+    if @previous_vault_session_ttl.nil?
+      ENV.delete("PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES")
+    else
+      ENV["PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES"] = @previous_vault_session_ttl
+    end
   end
 
   test "index renders successfully" do
@@ -334,6 +343,24 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
 
   test "redirects to unlock when session is locked" do
     delete lock_url
+    get credentials_url
+
+    assert_redirected_to unlock_url
+  end
+
+  test "redirects to unlock when vault session expires" do
+    travel 31.minutes
+
+    get credentials_url
+
+    assert_redirected_to unlock_url
+  end
+
+  test "uses default vault session ttl when configured ttl is invalid" do
+    ENV["PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES"] = "0"
+
+    travel 31.minutes
+
     get credentials_url
 
     assert_redirected_to unlock_url

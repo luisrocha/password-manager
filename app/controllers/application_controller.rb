@@ -1,10 +1,17 @@
 class ApplicationController < ActionController::Base
-  VAULT_SESSION_TTL = 12.hours
+  DEFAULT_VAULT_SESSION_TTL_MINUTES = 30
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
   before_action :require_vault_unlock
+
+  def self.vault_session_ttl
+    minutes = ENV.fetch("PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES", DEFAULT_VAULT_SESSION_TTL_MINUTES).to_i
+    minutes = DEFAULT_VAULT_SESSION_TTL_MINUTES if minutes <= 0
+
+    minutes.minutes
+  end
 
   private
 
@@ -19,7 +26,7 @@ class ApplicationController < ActionController::Base
     return false if timestamp.blank?
 
     unlocked_at = Time.zone.at(timestamp.to_i)
-    return true if unlocked_at >= VAULT_SESSION_TTL.ago
+    return true if unlocked_at >= self.class.vault_session_ttl.ago
 
     session.delete(:vault_unlocked_at)
     false
