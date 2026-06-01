@@ -40,6 +40,11 @@ services:
     build:
       context: .
       target: dev
+    env_file:
+      - path: docker-compose.env
+        required: false
+      - path: .env
+        required: false
     command: bin/rails server -b 0.0.0.0
     environment:
       CHROME_BIN: /usr/bin/chromium
@@ -55,6 +60,11 @@ services:
     build:
       context: .
       target: dev
+    env_file:
+      - path: docker-compose.env
+        required: false
+      - path: .env
+        required: false
     command: bin/rails test
     environment:
       RAILS_ENV: test
@@ -67,6 +77,11 @@ services:
     build:
       context: .
       target: dev
+    env_file:
+      - path: docker-compose.env
+        required: false
+      - path: .env
+        required: false
     command: bin/rails test:system
     environment:
       RAILS_ENV: test

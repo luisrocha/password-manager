@@ -3,6 +3,8 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "factory_bot_rails"
 
+ENV[VaultSetupToken::ENV_KEY] = "test-setup-token" unless VaultSetupToken.token_configured?
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers

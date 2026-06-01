@@ -35,6 +35,36 @@ class VaultFlowsTest < ApplicationSystemTestCase
     FileUtils.rm_f(backup_path) if backup_path
   end
 
+  test "setup without configured setup token does not create local key" do
+    ENV.delete("PASSWORD_MANAGER_SETUP_TOKEN")
+
+    visit unlock_path
+
+    assert_text "Setup token is not configured."
+    fill_in "New master password", with: MASTER_PASSWORD
+    fill_in "Confirm master password", with: MASTER_PASSWORD
+    fill_in "Setup token", with: "wrong-token"
+    click_button "Create Vault Key"
+
+    assert_text "Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key."
+    assert_selector "[data-unlock-target='status']", text: "Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key.", count: 1
+    assert_nil page.evaluate_script("window.localStorage.getItem('passwordManager.encryptedPrivateKey')")
+    assert_no_text "Vault key created."
+  end
+
+  test "setup with wrong setup token does not create local key" do
+    visit unlock_path
+
+    fill_in "New master password", with: MASTER_PASSWORD
+    fill_in "Confirm master password", with: MASTER_PASSWORD
+    fill_in "Setup token", with: "wrong-token"
+    click_button "Create Vault Key"
+
+    assert_text "Setup token is invalid."
+    assert_nil page.evaluate_script("window.localStorage.getItem('passwordManager.encryptedPrivateKey')")
+    assert_no_text "Vault key created."
+  end
+
   private
 
   def create_new_vault_key

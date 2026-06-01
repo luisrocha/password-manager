@@ -3,12 +3,10 @@ class VaultSetupToken
   PLACEHOLDER_VALUES = ["", "replace-with-a-setup-token"].freeze
 
   def self.required?
-    token_configured? || Rails.env.production?
+    true
   end
 
   def self.valid?(provided_token)
-    return true unless required?
-
     expected_token = ENV[ENV_KEY].to_s
     provided_token = provided_token.to_s
     return false if PLACEHOLDER_VALUES.include?(expected_token)

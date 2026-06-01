@@ -47,6 +47,11 @@ export default class extends Controller {
     this.clearStatus()
 
     const masterPassword = this.setupPasswordTarget.value
+    if (this.setupTokenRequired && !this.setupTokenConfigured) {
+      this.showError("Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key.")
+      return
+    }
+
     if (masterPassword !== this.setupConfirmationTarget.value) {
       this.showError("Master password confirmation does not match.")
       return
@@ -63,7 +68,9 @@ export default class extends Controller {
     this.pendingSetupToken = this.setupToken
 
     try {
+      await this.verifySetupToken()
       await generateVault(masterPassword)
+      this.registeringNewVault = true
       this.setupFormTarget.classList.add("hidden")
       this.setupTitleTarget.textContent = "Back up vault key"
       this.prepareBackupDownload()
@@ -71,8 +78,12 @@ export default class extends Controller {
       this.backupActionsTarget.classList.add("flex")
       this.setDescription("Download the vault key backup before continuing to the vault.")
       this.showStatus("Vault key created.")
-    } catch {
-      this.showError("Vault setup failed. Please try again.")
+    } catch (error) {
+      if (error.message === "invalid_setup_token") {
+        this.showError("Setup token is invalid.")
+      } else {
+        this.showError("Vault setup failed. Please try again.")
+      }
     }
   }
 
@@ -84,6 +95,7 @@ export default class extends Controller {
 
     try {
       await unlockVault(masterPassword)
+      this.registeringNewVault = false
       await this.unlockRailsSession()
     } catch {
       this.showError("Invalid master password.")
@@ -137,6 +149,10 @@ export default class extends Controller {
     this.backupActionsTarget.classList.remove("flex")
     this.setupPanelTarget.classList.remove("hidden")
     this.setupPasswordTarget.focus()
+
+    if (this.setupTokenRequired && !this.setupTokenConfigured) {
+      this.showError("Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key.")
+    }
   }
 
   showUnlock(event) {
@@ -178,7 +194,9 @@ export default class extends Controller {
 
     this.signatureTarget.value = proof.signature
     this.signingPublicKeyTarget.value = proof.signingPublicKeySpki
-    if (this.hasSessionSetupTokenTarget) this.sessionSetupTokenTarget.value = this.setupToken
+    if (this.hasSessionSetupTokenTarget) {
+      this.sessionSetupTokenTarget.value = this.registeringNewVault ? this.setupToken : ""
+    }
     this.sessionFormTarget.requestSubmit()
   }
 
@@ -194,19 +212,38 @@ export default class extends Controller {
     if (!this.vaultRegistered) return
 
     const backup = JSON.parse(serializedBackup)
-    const headers = { "Content-Type": "application/json" }
-    const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
-    if (csrfToken) headers["X-CSRF-Token"] = csrfToken
 
     const response = await fetch("/unlock/verify_backup_key", {
       method: "POST",
-      headers,
+      headers: this.jsonHeaders,
       body: JSON.stringify({
         signing_public_key_spki: backup.signing?.publicKeySpki
       })
     })
 
     if (!response.ok) throw new Error("backup_key_mismatch")
+  }
+
+  async verifySetupToken() {
+    if (!this.setupTokenRequired) return
+
+    const response = await fetch("/unlock/verify_setup_token", {
+      method: "POST",
+      headers: this.jsonHeaders,
+      body: JSON.stringify({
+        setup_token: this.setupToken
+      })
+    })
+
+    if (!response.ok) throw new Error("invalid_setup_token")
+  }
+
+  get jsonHeaders() {
+    const headers = { "Content-Type": "application/json" }
+    const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+    if (csrfToken) headers["X-CSRF-Token"] = csrfToken
+
+    return headers
   }
 
   hideAllPanels() {
@@ -251,6 +288,10 @@ export default class extends Controller {
 
   get setupTokenRequired() {
     return this.challengeTarget.dataset.setupTokenRequired === "true"
+  }
+
+  get setupTokenConfigured() {
+    return this.challengeTarget.dataset.setupTokenConfigured === "true"
   }
 
   get enforcePasswordStrength() {
