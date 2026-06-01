@@ -5,7 +5,7 @@
 Rails application for a self-hosted password manager.
 
 ## Implemented Features
-- Client-side vault unlock flow with a 12-hour authenticated web session window
+- Client-side vault unlock flow with a configurable authenticated web session window
 - Browser API unlock flow using signed vault challenges and encrypted JWT bearer tokens
 - Encrypted storage of sensitive fields (`username`, `password`, `notes`) using client-side encrypted payloads
 - Credential management from the web UI (create, list, edit, delete)
@@ -26,6 +26,7 @@ Copy `.env.example` values into your local environment file as needed. Keep real
 
 Additional browser API environment variables:
 - `PASSWORD_MANAGER_SETUP_TOKEN` (required before the first vault key is registered; first setup is rejected if this is missing or left as the example placeholder)
+- `PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES` (optional web session duration after unlock, default `30`)
 - `PASSWORD_MANAGER_BROWSER_JWT_TTL_SECONDS` (optional, default `900`)
 - `PASSWORD_MANAGER_API_TOKEN` (required by `POST /api/browser/auth/unlock`)
 
