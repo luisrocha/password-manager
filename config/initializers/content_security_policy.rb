@@ -14,7 +14,7 @@ Rails.application.configure do
     policy.frame_ancestors :none
     policy.img_src     :self, :data, :blob
     policy.object_src  :none
-    policy.script_src  :self
+    policy.script_src  :self, "'wasm-unsafe-eval'"
     policy.style_src   :self
     policy.worker_src  :self, :blob
   end

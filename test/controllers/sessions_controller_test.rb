@@ -94,7 +94,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     get unlock_url
 
     assert_no_difference("VaultSigningKey.count") do
-      post unlock_url, params: unlock_proof_params
+      post unlock_url, params: unlock_proof_params.except(:setup_token)
     end
 
     assert_redirected_to unlock_url

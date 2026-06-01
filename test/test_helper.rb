@@ -28,10 +28,13 @@ module VaultUnlockIntegrationHelper
   def unlock_proof_params
     challenge = response.body.match(/data-challenge="([^"]+)"/)[1]
 
-    {
+    params = {
       unlock_signature: Base64.strict_encode64(TEST_UNLOCK_KEY.sign(OpenSSL::Digest::SHA256.new, challenge)),
       signing_public_key_spki: Base64.strict_encode64(TEST_UNLOCK_KEY.public_to_der)
     }
+    params[:setup_token] = ENV["PASSWORD_MANAGER_SETUP_TOKEN"] if VaultSetupToken.token_configured?
+
+    params
   end
 end
 
