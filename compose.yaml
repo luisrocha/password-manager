@@ -35,7 +35,47 @@ services:
       - caddy_config:/config
     restart: unless-stopped
 
+  dev:
+    image: password-manager-web-dev
+    build:
+      context: .
+      target: dev
+    command: bin/rails server -b 0.0.0.0
+    environment:
+      CHROME_BIN: /usr/bin/chromium
+    ports:
+      - "3000:3000"
+    volumes:
+      - password_manager_dev_storage:/rails/storage
+    profiles:
+      - dev
+
+  tests:
+    image: password-manager-web-dev
+    build:
+      context: .
+      target: dev
+    command: bin/rails test
+    environment:
+      RAILS_ENV: test
+      CHROME_BIN: /usr/bin/chromium
+    profiles:
+      - test
+
+  system-tests:
+    image: password-manager-web-dev
+    build:
+      context: .
+      target: dev
+    command: bin/rails test:system
+    environment:
+      RAILS_ENV: test
+      CHROME_BIN: /usr/bin/chromium
+    profiles:
+      - test
+
 volumes:
   password_manager_storage:
+  password_manager_dev_storage:
   caddy_data:
   caddy_config:

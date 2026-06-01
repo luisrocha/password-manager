@@ -27,6 +27,25 @@ RUN bundle install && \
 COPY . .
 RUN SECRET_KEY_BASE=dummy bin/rails assets:precompile
 
+FROM base AS dev
+
+ENV RAILS_ENV="development" \
+    BUNDLE_DEPLOYMENT="" \
+    BUNDLE_WITHOUT="" \
+    CHROME_BIN="/usr/bin/chromium"
+
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential chromium chromium-driver git libsqlite3-dev libyaml-dev pkg-config && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+COPY Gemfile Gemfile.lock ./
+RUN bundle install && \
+    rm -rf ~/.bundle/ /usr/local/bundle/ruby/*/cache /usr/local/bundle/ruby/*/bundler/gems/*/.git
+
+COPY . .
+
+CMD ["bin/rails", "server", "-b", "0.0.0.0"]
+
 FROM base
 
 COPY --from=build /usr/local/bundle /usr/local/bundle
