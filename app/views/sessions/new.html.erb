@@ -6,6 +6,7 @@
     data-unlock-target="challenge"
     data-challenge="<%= session[:unlock_challenge] %>"
     data-vault-registered="<%= @vault_registered %>"
+    data-setup-token-required="<%= @setup_token_required %>"
   ></div>
 
   <section class="w-full rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -32,6 +33,10 @@
             <%= f.password_field :setup_master_password, required: true, autocomplete: "new-password", placeholder: "New master password", aria: { label: "New master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupPassword" } %>
 
             <%= f.password_field :setup_master_password_confirmation, required: true, autocomplete: "new-password", placeholder: "Confirm master password", aria: { label: "Confirm master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupConfirmation" } %>
+
+            <% if @setup_token_required %>
+              <%= f.password_field :setup_token, required: true, autocomplete: "one-time-code", placeholder: "Setup token", aria: { label: "Setup token" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupToken" } %>
+            <% end %>
           </div>
 
           <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -57,7 +62,13 @@
 
       <div class="hidden space-y-4" data-unlock-target="unlockPanel">
         <%= form_with url: unlock_path, method: :post, local: true, data: { action: "submit->unlock#unlock" } do |f| %>
-          <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", placeholder: "Master password", aria: { label: "Master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "unlockPassword" } %>
+          <div class="space-y-4">
+            <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", placeholder: "Master password", aria: { label: "Master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "unlockPassword" } %>
+
+            <% if @setup_token_required %>
+              <%= f.password_field :setup_token, required: true, autocomplete: "one-time-code", placeholder: "Setup token", aria: { label: "Setup token" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupToken" } %>
+            <% end %>
+          </div>
 
           <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
             <%= f.submit "Unlock", class: "inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800" %>
@@ -84,6 +95,7 @@
     <%= form_with url: unlock_path, method: :post, html: { class: "hidden" }, data: { unlock_target: "sessionForm" } do |f| %>
       <%= f.hidden_field :unlock_signature, data: { unlock_target: "signature" } %>
       <%= f.hidden_field :signing_public_key_spki, data: { unlock_target: "signingPublicKey" } %>
+      <%= f.hidden_field :setup_token, data: { unlock_target: "sessionSetupToken" } %>
     <% end %>
   </section>
 </main>

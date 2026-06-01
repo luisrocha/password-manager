@@ -1,6 +1,19 @@
 require "test_helper"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @original_setup_token = ENV["PASSWORD_MANAGER_SETUP_TOKEN"]
+    ENV.delete("PASSWORD_MANAGER_SETUP_TOKEN")
+  end
+
+  teardown do
+    if @original_setup_token.nil?
+      ENV.delete("PASSWORD_MANAGER_SETUP_TOKEN")
+    else
+      ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = @original_setup_token
+    end
+  end
+
   test "unlock page renders client vault flow" do
     get unlock_url
 
@@ -13,7 +26,18 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-unlock-target="importPanel"'
   end
 
+  test "unlock page renders setup token field when setup token is configured" do
+    ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = "server-setup-token"
+
+    get unlock_url
+
+    assert_response :success
+    assert_includes response.body, 'data-setup-token-required="true"'
+    assert_includes response.body, 'placeholder="Setup token"'
+  end
+
   test "unlock page marks registered vault and hides create new key action" do
+    ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = "server-setup-token"
     VaultSigningKey.create!(
       public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
     )
@@ -22,7 +46,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, 'data-vault-registered="true"'
+    assert_includes response.body, 'data-setup-token-required="false"'
     assert_not_includes response.body, "Create new key"
+    assert_not_includes response.body, 'placeholder="Setup token"'
   end
 
   test "create rejects unsigned unlock attempts" do
@@ -60,6 +86,30 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_response :success
     assert_includes response.body, "Vault unlocked."
+  end
+
+  test "create rejects first key registration without configured setup token" do
+    ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = "server-setup-token"
+
+    get unlock_url
+
+    assert_no_difference("VaultSigningKey.count") do
+      post unlock_url, params: unlock_proof_params
+    end
+
+    assert_redirected_to unlock_url
+  end
+
+  test "create accepts first key registration with configured setup token" do
+    ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = "server-setup-token"
+
+    get unlock_url
+
+    assert_difference("VaultSigningKey.count", 1) do
+      post unlock_url, params: unlock_proof_params.merge(setup_token: "server-setup-token")
+    end
+
+    assert_redirected_to credentials_url
   end
 
   test "create rejects reused unlock challenge" do
