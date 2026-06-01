@@ -7,6 +7,7 @@
     data-challenge="<%= session[:unlock_challenge] %>"
     data-vault-registered="<%= @vault_registered %>"
     data-setup-token-required="<%= @setup_token_required %>"
+    data-enforce-password-strength="<%= Rails.env.production? %>"
   ></div>
 
   <section class="w-full rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -30,9 +31,9 @@
 
         <%= form_with url: unlock_path, method: :post, local: true, data: { action: "submit->unlock#setup", unlock_target: "setupForm" } do |f| %>
           <div class="space-y-4">
-            <%= f.password_field :setup_master_password, required: true, autocomplete: "new-password", placeholder: "New master password", aria: { label: "New master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupPassword" } %>
+            <%= f.password_field :setup_master_password, required: true, minlength: (14 if Rails.env.production?), autocomplete: "new-password", placeholder: "New master password", aria: { label: "New master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupPassword" } %>
 
-            <%= f.password_field :setup_master_password_confirmation, required: true, autocomplete: "new-password", placeholder: "Confirm master password", aria: { label: "Confirm master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupConfirmation" } %>
+            <%= f.password_field :setup_master_password_confirmation, required: true, minlength: (14 if Rails.env.production?), autocomplete: "new-password", placeholder: "Confirm master password", aria: { label: "Confirm master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupConfirmation" } %>
 
             <% if @setup_token_required %>
               <%= f.password_field :setup_token, required: true, autocomplete: "one-time-code", placeholder: "Setup token", aria: { label: "Setup token" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "setupToken" } %>
