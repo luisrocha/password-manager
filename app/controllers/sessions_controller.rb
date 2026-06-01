@@ -1,5 +1,26 @@
 class SessionsController < ApplicationController
+  include RateLimitResponse
+
+  UNLOCK_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_UNLOCK_THROTTLE_LIMIT", 30).to_i
+  SETUP_TOKEN_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_SETUP_TOKEN_THROTTLE_LIMIT", 10).to_i
+  BACKUP_VERIFY_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_BACKUP_VERIFY_THROTTLE_LIMIT", 60).to_i
+
   skip_before_action :require_vault_unlock, only: %i[new create verify_backup_key verify_setup_token]
+  rate_limit to: UNLOCK_THROTTLE_LIMIT,
+    within: 1.minute,
+    only: :create,
+    with: :render_rate_limit_response,
+    name: "unlock"
+  rate_limit to: SETUP_TOKEN_THROTTLE_LIMIT,
+    within: 1.minute,
+    only: :verify_setup_token,
+    with: :render_rate_limit_response,
+    name: "setup_token"
+  rate_limit to: BACKUP_VERIFY_THROTTLE_LIMIT,
+    within: 1.minute,
+    only: :verify_backup_key,
+    with: :render_rate_limit_response,
+    name: "backup_key"
 
   def new
     session[:unlock_challenge] = SecureRandom.urlsafe_base64(32)

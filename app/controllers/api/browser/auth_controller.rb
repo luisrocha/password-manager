@@ -1,4 +1,13 @@
 class Api::Browser::AuthController < ActionController::API
+  include RateLimitResponse
+
+  API_UNLOCK_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_API_UNLOCK_THROTTLE_LIMIT", 30).to_i
+
+  rate_limit to: API_UNLOCK_THROTTLE_LIMIT,
+    within: 1.minute,
+    only: :unlock,
+    with: :render_rate_limit_response,
+    name: "browser_api_unlock"
   before_action :authenticate_static_api_token!
 
   def unlock
