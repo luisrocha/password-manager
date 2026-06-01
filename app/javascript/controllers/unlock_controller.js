@@ -9,6 +9,7 @@ import {
   unlockVault
 } from "vault_crypto"
 
+const MIN_MASTER_PASSWORD_LENGTH = 14
 export default class extends Controller {
   static targets = [
     "setupPanel",
@@ -46,11 +47,20 @@ export default class extends Controller {
     this.clearStatus()
 
     const masterPassword = this.setupPasswordTarget.value
-    this.pendingSetupToken = this.setupToken
     if (masterPassword !== this.setupConfirmationTarget.value) {
       this.showError("Master password confirmation does not match.")
       return
     }
+
+    if (this.enforcePasswordStrength) {
+      const passwordError = this.masterPasswordStrengthError(masterPassword)
+      if (passwordError) {
+        this.showError(passwordError)
+        return
+      }
+    }
+
+    this.pendingSetupToken = this.setupToken
 
     try {
       await generateVault(masterPassword)
@@ -224,12 +234,27 @@ export default class extends Controller {
     this.descriptionTarget.textContent = message
   }
 
+  masterPasswordStrengthError(masterPassword) {
+    const normalizedPassword = masterPassword.trim()
+    if (normalizedPassword.length < MIN_MASTER_PASSWORD_LENGTH) {
+      return `Master password must be at least ${MIN_MASTER_PASSWORD_LENGTH} characters.`
+    }
+    if (/^(.)\1+$/.test(normalizedPassword)) {
+      return "Master password cannot be a repeated character."
+    }
+    return null
+  }
+
   get vaultRegistered() {
     return this.challengeTarget.dataset.vaultRegistered === "true"
   }
 
   get setupTokenRequired() {
     return this.challengeTarget.dataset.setupTokenRequired === "true"
+  }
+
+  get enforcePasswordStrength() {
+    return this.challengeTarget.dataset.enforcePasswordStrength === "true"
   }
 
   get setupToken() {

@@ -63,6 +63,12 @@ Then restart your browser. Firefox may still require importing
 `tmp/certs/password-manager-local-root.crt` manually in:
 `Settings -> Privacy & Security -> Certificates -> View Certificates`.
 
+### Vault Backups
+The vault backup file contains encrypted private key material. Store it somewhere
+safe and separate from the app server. Anyone who obtains the backup can attempt
+an offline attack against the master password, so use a long, unique master
+password or passphrase.
+
 ## Development
 
 ### Running the app locally
