@@ -23,6 +23,7 @@ class SessionsController < ApplicationController
     name: "backup_key"
 
   def new
+    session.delete(:pending_totp_unlocked_at)
     session[:unlock_challenge] = SecureRandom.urlsafe_base64(32)
     @vault_registered = VaultSigningKey.exists?
     @setup_token_required = !@vault_registered && VaultSetupToken.required?
@@ -35,8 +36,15 @@ class SessionsController < ApplicationController
       return
     end
 
-    session[:vault_unlocked_at] = Time.current.to_i
     session.delete(:unlock_challenge)
+
+    if TotpSetting.enabled?
+      session[:pending_totp_unlocked_at] = Time.current.to_i
+      redirect_to totp_challenge_path, status: :see_other
+      return
+    end
+
+    session[:vault_unlocked_at] = Time.current.to_i
     redirect_to credentials_path, notice: "Vault unlocked.", status: :see_other
   end
 

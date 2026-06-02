@@ -7,6 +7,8 @@ gem "stimulus-rails"
 gem "sqlite3", ">= 2.1"
 gem "turbo-rails"
 gem "puma", ">= 5.0"
+gem "rotp", "~> 6.3"
+gem "rqrcode", "~> 3.1"
 
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
