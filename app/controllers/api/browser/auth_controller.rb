@@ -74,10 +74,7 @@ class Api::Browser::AuthController < ActionController::API
   end
 
   def authenticate_static_api_token!
-    expected_token = ENV["PASSWORD_MANAGER_API_TOKEN"].to_s
-    provided_token = bearer_token
-
-    unless expected_token.present? && valid_token?(provided_token, expected_token)
+    unless BrowserApiToken.valid?(bearer_token)
       render json: { error: "Unauthorized", code: "invalid_api_token" }, status: :unauthorized
     end
   end
@@ -86,12 +83,5 @@ class Api::Browser::AuthController < ActionController::API
     authorization = request.headers["Authorization"].to_s
     match = authorization.match(/\ABearer (?<token>.+)\z/)
     match && match[:token]
-  end
-
-  def valid_token?(provided_token, expected_token)
-    return false if provided_token.blank?
-    return false unless provided_token.bytesize == expected_token.bytesize
-
-    ActiveSupport::SecurityUtils.secure_compare(provided_token, expected_token)
   end
 end

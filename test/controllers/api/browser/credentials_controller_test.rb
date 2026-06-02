@@ -5,13 +5,12 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
   UPDATED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nupdated-api-test-payload\n-----END PGP MESSAGE-----".freeze
 
   setup do
-    @previous_api_token = ENV["PASSWORD_MANAGER_API_TOKEN"]
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = nil
+    @previous_api_token_hashes = ENV["PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES"]
     @auth_header = { "Authorization" => "Bearer #{BrowserJwt.issue_encrypted_token[:token]}" }
   end
 
   teardown do
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = @previous_api_token
+    restore_env("PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES", @previous_api_token_hashes)
   end
 
   test "returns encrypted credentials matching request host" do
@@ -131,8 +130,8 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "token_expired", response.parsed_body["code"]
   end
 
-  test "rejects static bearer token for credential search" do
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = "test-token"
+  test "rejects bootstrap bearer token for credential search" do
+    ENV["PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES"] = BrowserApiToken.sha256("test-token")
 
     post "/api/browser/credentials/search",
       params: { origin: "https://github.com" },
@@ -246,6 +245,10 @@ class Api::Browser::CredentialsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def restore_env(key, value)
+    value.nil? ? ENV.delete(key) : ENV[key] = value
+  end
 
   def assert_no_plaintext_secret_keys(payload)
     assert_not payload.key?("username")

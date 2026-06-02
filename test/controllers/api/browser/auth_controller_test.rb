@@ -2,14 +2,14 @@ require "test_helper"
 
 class Api::Browser::AuthControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @previous_api_token = ENV["PASSWORD_MANAGER_API_TOKEN"]
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = "browser-static-token"
+    @previous_api_token_hashes = ENV["PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES"]
+    ENV["PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES"] = BrowserApiToken.sha256("browser-static-token")
     @auth_header = { "Authorization" => "Bearer browser-static-token" }
     Rails.cache.clear
   end
 
   teardown do
-    ENV["PASSWORD_MANAGER_API_TOKEN"] = @previous_api_token
+    restore_env("PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES", @previous_api_token_hashes)
     Rails.cache.clear
   end
 
@@ -78,5 +78,11 @@ class Api::Browser::AuthControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unauthorized
     assert_equal "invalid_api_token", response.parsed_body["code"]
+  end
+
+  private
+
+  def restore_env(key, value)
+    value.nil? ? ENV.delete(key) : ENV[key] = value
   end
 end
