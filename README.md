@@ -28,7 +28,11 @@ Additional browser API environment variables:
 - `PASSWORD_MANAGER_SETUP_TOKEN` (required before the first vault key is registered; first setup is rejected if this is missing or left as the example placeholder)
 - `PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES` (optional web session duration after unlock, default `30`)
 - `PASSWORD_MANAGER_BROWSER_JWT_TTL_SECONDS` (optional, default `900`)
-- `PASSWORD_MANAGER_API_TOKEN` (required by `POST /api/browser/auth/unlock`)
+- `PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES` (required by `POST /api/browser/auth/unlock` when using the browser extension API; comma-separated hashes allow token rotation)
+
+For the browser extension API bootstrap token, generate a high-entropy token,
+store the token itself only in the extension, and configure the server with the
+token's SHA-256 hash.
 
 ### Run With Docker Compose
 The primary Compose file runs Rails in production mode behind Caddy, which serves
