@@ -21,6 +21,10 @@
 
     <%= form_with url: totp_challenge_path, method: :post, local: true, html: { class: "space-y-4" } do |f| %>
       <%= f.text_field :code, required: true, autofocus: true, inputmode: "text", autocomplete: "one-time-code", placeholder: "Code or recovery code", aria: { label: "Two-factor code or recovery code" }, class: "block min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20" %>
+      <label class="flex items-start gap-3 text-sm text-slate-700">
+        <%= f.check_box :remember_client, class: "mt-1 rounded border-slate-300 text-teal-700 focus:ring-teal-600" %>
+        <span>Do not ask again on this browser for 24 hours.</span>
+      </label>
       <div class="flex flex-col gap-3 sm:flex-row">
         <%= f.submit "Unlock", class: "#{primary_button_class} sm:flex-1" %>
         <%= link_to "Cancel", unlock_path, class: secondary_button_class %>

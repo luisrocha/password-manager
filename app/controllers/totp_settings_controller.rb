@@ -36,12 +36,16 @@ class TotpSettingsController < ApplicationController
     )
     session.delete(:pending_totp_secret)
     session[:totp_recovery_codes] = recovery_codes
+    TotpRememberedClient.revoke_all!
+    cookies.delete(:totp_remembered_client)
     redirect_to security_path, notice: "Two-factor authentication enabled.", status: :see_other
   end
 
   def destroy
     TotpSetting.current&.destroy!
+    TotpRememberedClient.revoke_all!
     session.delete(:pending_totp_secret)
+    cookies.delete(:totp_remembered_client)
     redirect_to security_path, notice: "Two-factor authentication disabled.", status: :see_other
   end
 end

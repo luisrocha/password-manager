@@ -39,6 +39,12 @@ class SessionsController < ApplicationController
     session.delete(:unlock_challenge)
 
     if TotpSetting.enabled?
+      if TotpRememberedClient.valid_token?(cookies.encrypted[:totp_remembered_client])
+        session[:vault_unlocked_at] = Time.current.to_i
+        redirect_to credentials_path, notice: "Vault unlocked.", status: :see_other
+        return
+      end
+
       session[:pending_totp_unlocked_at] = Time.current.to_i
       redirect_to totp_challenge_path, status: :see_other
       return
