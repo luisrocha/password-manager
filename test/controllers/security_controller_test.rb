@@ -53,4 +53,15 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to security_url
   end
+
+  test "disabling totp revokes remembered clients" do
+    unlock!
+    TotpSetting.create!(secret: TotpSetting.generate_secret, enabled_at: Time.current)
+    TotpRememberedClient.issue!
+
+    delete totp_setting_url
+
+    assert_redirected_to security_url
+    assert_equal 0, TotpRememberedClient.active.count
+  end
 end

@@ -24,6 +24,7 @@ class TotpChallengesController < ApplicationController
 
     session[:vault_unlocked_at] = Time.current.to_i
     session.delete(:pending_totp_unlocked_at)
+    remember_client if remember_client?
     redirect_to credentials_path, notice: "Vault unlocked.", status: :see_other
   end
 
@@ -34,6 +35,20 @@ class TotpChallengesController < ApplicationController
     return false if setting.blank?
 
     setting.verify(params[:code]) || setting.consume_recovery_code(params[:code])
+  end
+
+  def remember_client?
+    ActiveModel::Type::Boolean.new.cast(params[:remember_client])
+  end
+
+  def remember_client
+    cookies.encrypted[:totp_remembered_client] = {
+      value: TotpRememberedClient.issue!,
+      expires: TotpRememberedClient::TTL.from_now,
+      httponly: true,
+      same_site: :lax,
+      secure: Rails.env.production?
+    }
   end
 
   def require_pending_totp_unlock
