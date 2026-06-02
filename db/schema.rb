@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_02_172459) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_02_182814) do
   create_table "credentials", force: :cascade do |t|
     t.string "category", default: "login", null: false
     t.datetime "created_at", null: false
@@ -25,6 +25,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_02_172459) do
   create_table "totp_settings", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "enabled_at"
+    t.text "recovery_code_digests", default: "[]", null: false
     t.string "secret", null: false
     t.datetime "updated_at", null: false
   end

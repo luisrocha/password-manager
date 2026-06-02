@@ -28,6 +28,32 @@ class TotpChallengesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to credentials_url
   end
 
+  test "accepts recovery code once after unlock proof" do
+    VaultSigningKey.create!(
+      public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    )
+    recovery_codes = TotpSetting.generate_recovery_codes
+    setting = TotpSetting.create!(
+      secret: TotpSetting.generate_secret,
+      enabled_at: Time.current,
+      recovery_codes:
+    )
+
+    get unlock_url
+    post unlock_url, params: unlock_proof_params.except(:setup_token)
+    post totp_challenge_url, params: { code: recovery_codes.first }
+
+    assert_redirected_to credentials_url
+    assert_equal recovery_codes.count - 1, setting.reload.recovery_codes_remaining
+
+    delete lock_url
+    get unlock_url
+    post unlock_url, params: unlock_proof_params.except(:setup_token)
+    post totp_challenge_url, params: { code: recovery_codes.first }
+
+    assert_redirected_to totp_challenge_url
+  end
+
   test "unlock page clears pending totp unlock" do
     VaultSigningKey.create!(
       public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)

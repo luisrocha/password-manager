@@ -1,4 +1,4 @@
-<% content_for :title, "Two-factor unlock" %>
+<% content_for :title, "Two-factor authentication" %>
 <%
   primary_button_class = "inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800"
   secondary_button_class = "inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -8,8 +8,8 @@
   <section class="w-full rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
     <div class="mb-5">
       <p class="text-sm font-semibold uppercase text-teal-700">Vault locked</p>
-      <h1 class="text-3xl font-semibold text-slate-950">Two-factor unlock</h1>
-      <p class="mt-2 text-sm leading-6 text-slate-600">Enter the code from your authenticator app to finish unlocking.</p>
+      <h1 class="text-3xl font-semibold text-slate-950">Two-factor authentication</h1>
+      <p class="mt-2 text-sm leading-6 text-slate-600">Enter the code from your authenticator app, or use one recovery code.</p>
     </div>
 
     <% if notice.present? %>
@@ -20,7 +20,7 @@
     <% end %>
 
     <%= form_with url: totp_challenge_path, method: :post, local: true, html: { class: "space-y-4" } do |f| %>
-      <%= f.text_field :code, required: true, autofocus: true, inputmode: "numeric", pattern: "[0-9 ]*", autocomplete: "one-time-code", placeholder: "Six-digit code", aria: { label: "Two-factor code" }, class: "block min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20" %>
+      <%= f.text_field :code, required: true, autofocus: true, inputmode: "text", autocomplete: "one-time-code", placeholder: "Code or recovery code", aria: { label: "Two-factor code or recovery code" }, class: "block min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20" %>
       <div class="flex flex-col gap-3 sm:flex-row">
         <%= f.submit "Unlock", class: "#{primary_button_class} sm:flex-1" %>
         <%= link_to "Cancel", unlock_path, class: secondary_button_class %>

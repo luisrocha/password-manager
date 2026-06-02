@@ -13,7 +13,7 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
     get security_url
 
     assert_response :success
-    assert_includes response.body, "Two-factor unlock"
+    assert_includes response.body, "Two-factor authentication"
     assert_includes response.body, "Enable"
   end
 
@@ -34,6 +34,13 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to security_url
     assert TotpSetting.current.enabled?
+    assert_equal TotpSetting::RECOVERY_CODE_COUNT, TotpSetting.current.recovery_codes_remaining
+    follow_redirect!
+    assert_includes response.body, "Save your recovery codes"
+    assert_match(/[A-Z0-9]{5}-[A-Z0-9]{5}/, response.body)
+
+    get security_url
+    assert_not_includes response.body, "Save your recovery codes"
   end
 
   test "rejects invalid totp enrollment code" do
