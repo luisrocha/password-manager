@@ -17,6 +17,12 @@ Rails.application.routes.draw do
   post "unlock/verify_setup_token", to: "sessions#verify_setup_token"
   post "unlock/verify_backup_key", to: "sessions#verify_backup_key"
   delete "lock", to: "sessions#destroy"
+  get "totp_challenge", to: "totp_challenges#new"
+  post "totp_challenge", to: "totp_challenges#create"
+  get "security", to: "security#index"
+  resource :totp_setting, only: %i[create destroy] do
+    post :confirm
+  end
 
   root "credentials#index"
 

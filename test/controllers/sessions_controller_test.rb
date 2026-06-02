@@ -129,6 +129,18 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to credentials_url
   end
 
+  test "create redirects to totp challenge when two-factor unlock is enabled" do
+    VaultSigningKey.create!(
+      public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    )
+    TotpSetting.create!(secret: TotpSetting.generate_secret, enabled_at: Time.current)
+
+    get unlock_url
+    post unlock_url, params: unlock_proof_params.except(:setup_token)
+
+    assert_redirected_to totp_challenge_url
+  end
+
   test "create rejects first key registration when setup token is missing from the environment" do
     ENV.delete("PASSWORD_MANAGER_SETUP_TOKEN")
 

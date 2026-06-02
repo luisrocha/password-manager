@@ -1,0 +1,46 @@
+require "test_helper"
+
+class TotpChallengesControllerTest < ActionDispatch::IntegrationTest
+  test "redirects without a pending totp unlock" do
+    get totp_challenge_url
+
+    assert_redirected_to unlock_url
+  end
+
+  test "requires valid totp code after unlock proof" do
+    VaultSigningKey.create!(
+      public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    )
+    setting = TotpSetting.create!(secret: TotpSetting.generate_secret, enabled_at: Time.current)
+
+    get unlock_url
+    post unlock_url, params: unlock_proof_params.except(:setup_token)
+
+    assert_redirected_to totp_challenge_url
+
+    get credentials_url
+    assert_redirected_to unlock_url
+
+    post totp_challenge_url, params: { code: "000000" }
+    assert_redirected_to totp_challenge_url
+
+    post totp_challenge_url, params: { code: ROTP::TOTP.new(setting.secret).now }
+    assert_redirected_to credentials_url
+  end
+
+  test "unlock page clears pending totp unlock" do
+    VaultSigningKey.create!(
+      public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    )
+    setting = TotpSetting.create!(secret: TotpSetting.generate_secret, enabled_at: Time.current)
+
+    get unlock_url
+    post unlock_url, params: unlock_proof_params.except(:setup_token)
+    assert_redirected_to totp_challenge_url
+
+    get unlock_url
+    post totp_challenge_url, params: { code: ROTP::TOTP.new(setting.secret).now }
+
+    assert_redirected_to unlock_url
+  end
+end
