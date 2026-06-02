@@ -11,7 +11,7 @@ class TotpSettingsController < ApplicationController
 
   def create
     session[:pending_totp_secret] = TotpSetting.generate_secret
-    redirect_to security_path, notice: "Scan the QR code to finish enabling two-factor unlock.", status: :see_other
+    redirect_to security_path, notice: "Scan the QR code to finish enabling two-factor authentication.", status: :see_other
   end
 
   def confirm
@@ -27,15 +27,21 @@ class TotpSettingsController < ApplicationController
       return
     end
 
+    recovery_codes = TotpSetting.generate_recovery_codes
     TotpSetting.current&.destroy!
-    TotpSetting.create!(secret: setting.secret, enabled_at: Time.current)
+    TotpSetting.create!(
+      secret: setting.secret,
+      enabled_at: Time.current,
+      recovery_codes:
+    )
     session.delete(:pending_totp_secret)
-    redirect_to security_path, notice: "Two-factor unlock enabled.", status: :see_other
+    session[:totp_recovery_codes] = recovery_codes
+    redirect_to security_path, notice: "Two-factor authentication enabled.", status: :see_other
   end
 
   def destroy
     TotpSetting.current&.destroy!
     session.delete(:pending_totp_secret)
-    redirect_to security_path, notice: "Two-factor unlock disabled.", status: :see_other
+    redirect_to security_path, notice: "Two-factor authentication disabled.", status: :see_other
   end
 end

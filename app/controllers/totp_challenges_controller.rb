@@ -17,7 +17,7 @@ class TotpChallengesController < ApplicationController
   end
 
   def create
-    unless TotpSetting.current&.verify(params[:code])
+    unless valid_second_factor_code?
       redirect_to totp_challenge_path, alert: "Two-factor code is invalid.", status: :see_other
       return
     end
@@ -28,6 +28,13 @@ class TotpChallengesController < ApplicationController
   end
 
   private
+
+  def valid_second_factor_code?
+    setting = TotpSetting.current
+    return false if setting.blank?
+
+    setting.verify(params[:code]) || setting.consume_recovery_code(params[:code])
+  end
 
   def require_pending_totp_unlock
     timestamp = session[:pending_totp_unlocked_at]

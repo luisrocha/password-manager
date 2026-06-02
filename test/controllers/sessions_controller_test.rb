@@ -129,7 +129,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to credentials_url
   end
 
-  test "create redirects to totp challenge when two-factor unlock is enabled" do
+  test "create redirects to totp challenge when two-factor authentication is enabled" do
     VaultSigningKey.create!(
       public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
     )

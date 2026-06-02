@@ -3,6 +3,7 @@ class SecurityController < ApplicationController
     @totp_setting = TotpSetting.current
     @pending_totp_secret = session[:pending_totp_secret]
     @pending_totp_setting = build_pending_totp_setting
+    @recovery_codes = session.delete(:totp_recovery_codes)
   end
 
   private
