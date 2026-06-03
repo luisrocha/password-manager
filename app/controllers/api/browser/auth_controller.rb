@@ -2,6 +2,7 @@ class Api::Browser::AuthController < ActionController::API
   include RateLimitResponse
 
   API_UNLOCK_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_API_UNLOCK_THROTTLE_LIMIT", 30).to_i
+  TOTP_CHALLENGE_TTL = 5.minutes
 
   rate_limit to: API_UNLOCK_THROTTLE_LIMIT,
     within: 1.minute,
@@ -11,6 +12,11 @@ class Api::Browser::AuthController < ActionController::API
   before_action :authenticate_static_api_token!
 
   def unlock
+    if totp_challenge_id.present?
+      verify_totp_challenge
+      return
+    end
+
     if unlock_params[:challenge_id].blank? && unlock_params[:challengeId].blank?
       issue_challenge
       return
@@ -21,18 +27,61 @@ class Api::Browser::AuthController < ActionController::API
       return
     end
 
-    issued_token = BrowserJwt.issue_encrypted_token
-    render json: {
-      token: issued_token[:token],
-      expiresAt: issued_token[:expires_at].iso8601,
-      tokenType: "Bearer"
-    }
+    if TotpSetting.enabled? && !TotpRememberedClient.valid_token?(totp_remembered_client_token)
+      issue_totp_challenge
+      return
+    end
+
+    render_token_response
   end
 
   private
 
+  def verify_totp_challenge
+    unless verified_totp_challenge.present?
+      render json: { error: "Invalid two-factor challenge", code: "invalid_totp_challenge" }, status: :unauthorized
+      return
+    end
+
+    unless valid_second_factor_code?
+      render json: { error: "Invalid two-factor code", code: "invalid_totp_code" }, status: :unauthorized
+      return
+    end
+
+    remembered_client_token = TotpRememberedClient.issue! if remember_client?
+    render_token_response(remembered_client_token:)
+  end
+
+  def render_token_response(remembered_client_token: nil)
+    issued_token = BrowserJwt.issue_encrypted_token
+    response_body = {
+      token: issued_token[:token],
+      expiresAt: issued_token[:expires_at].iso8601,
+      tokenType: "Bearer"
+    }
+    response_body[:totpRememberedClientToken] = remembered_client_token if remembered_client_token.present?
+
+    render json: response_body
+  end
+
   def unlock_params
-    params.permit(:challenge_id, :challengeId, :unlock_signature, :unlockSignature, :signing_public_key_spki, :signingPublicKeySpki)
+    params.permit(
+      :challenge_id,
+      :challengeId,
+      :unlock_signature,
+      :unlockSignature,
+      :signing_public_key_spki,
+      :signingPublicKeySpki,
+      :totp_challenge_id,
+      :totpChallengeId,
+      :totp_code,
+      :totpCode,
+      :code,
+      :remember_client,
+      :rememberClient,
+      :totp_remembered_client_token,
+      :totpRememberedClientToken
+    )
   end
 
   def issue_challenge
@@ -42,6 +91,16 @@ class Api::Browser::AuthController < ActionController::API
       challengeId: challenge_verifier.generate(challenge, expires_in: 5.minutes, purpose: :browser_api_unlock),
       challenge: challenge
     }
+  end
+
+  def issue_totp_challenge
+    challenge = SecureRandom.urlsafe_base64(48)
+
+    render json: {
+      requiresTotp: true,
+      totpChallengeId: totp_challenge_verifier.generate(challenge, expires_in: TOTP_CHALLENGE_TTL, purpose: :browser_api_totp),
+      expiresAt: TOTP_CHALLENGE_TTL.from_now.iso8601
+    }, status: :accepted
   end
 
   def valid_unlock_proof?
@@ -69,8 +128,39 @@ class Api::Browser::AuthController < ActionController::API
     challenge_verifier.verified(challenge_id, purpose: :browser_api_unlock)
   end
 
+  def totp_challenge_id
+    unlock_params[:totp_challenge_id].presence || unlock_params[:totpChallengeId].presence
+  end
+
+  def verified_totp_challenge
+    totp_challenge_verifier.verified(totp_challenge_id, purpose: :browser_api_totp)
+  end
+
+  def totp_code
+    unlock_params[:totp_code].presence || unlock_params[:totpCode].presence || unlock_params[:code].presence
+  end
+
+  def valid_second_factor_code?
+    setting = TotpSetting.current
+    return false if setting.blank?
+
+    setting.verify(totp_code) || setting.consume_recovery_code(totp_code)
+  end
+
+  def remember_client?
+    ActiveModel::Type::Boolean.new.cast(unlock_params[:remember_client].presence || unlock_params[:rememberClient].presence)
+  end
+
+  def totp_remembered_client_token
+    unlock_params[:totp_remembered_client_token].presence || unlock_params[:totpRememberedClientToken].presence
+  end
+
   def challenge_verifier
     Rails.application.message_verifier(:browser_api_unlock_challenge)
+  end
+
+  def totp_challenge_verifier
+    Rails.application.message_verifier(:browser_api_totp_challenge)
   end
 
   def authenticate_static_api_token!
