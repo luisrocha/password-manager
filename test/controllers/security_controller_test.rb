@@ -64,4 +64,15 @@ class SecurityControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to security_url
     assert_equal 0, TotpRememberedClient.active.count
   end
+
+  test "totp settings cannot be managed without an unlocked vault session" do
+    post totp_setting_url
+    assert_redirected_to unlock_url
+
+    post confirm_totp_setting_url, params: { code: "123456" }
+    assert_redirected_to unlock_url
+
+    delete totp_setting_url
+    assert_redirected_to unlock_url
+  end
 end
