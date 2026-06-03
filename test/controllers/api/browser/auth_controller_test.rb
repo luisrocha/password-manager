@@ -174,6 +174,28 @@ class Api::Browser::AuthControllerTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_totp_code", response.parsed_body["code"]
   end
 
+  test "rejects expired api totp challenge" do
+    VaultSigningKey.create!(
+      public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
+    )
+    setting = TotpSetting.create!(secret: TotpSetting.generate_secret, enabled_at: Time.current)
+    post_signed_unlock
+    totp_challenge_id = response.parsed_body.fetch("totpChallengeId")
+
+    travel 6.minutes
+
+    post "/api/browser/auth/unlock",
+      params: {
+        totpChallengeId: totp_challenge_id,
+        totpCode: ROTP::TOTP.new(setting.secret).now
+      },
+      headers: @auth_header,
+      as: :json
+
+    assert_response :unauthorized
+    assert_equal "invalid_totp_challenge", response.parsed_body["code"]
+  end
+
   test "rejects invalid signed challenge" do
     VaultSigningKey.create!(
       public_key_spki: Base64.strict_encode64(VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY.public_to_der)
