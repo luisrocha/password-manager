@@ -5,6 +5,7 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   before_action :require_vault_unlock
+  helper_method :extension_handoff_id
 
   def self.vault_session_ttl
     minutes = ENV.fetch("PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES", DEFAULT_VAULT_SESSION_TTL_MINUTES).to_i
@@ -18,7 +19,17 @@ class ApplicationController < ActionController::Base
   def require_vault_unlock
     return if unlocked_session?
 
-    redirect_to unlock_path
+    redirect_params = {}
+    if params[:extension_id].present?
+      session[:extension_id] = params[:extension_id]
+      redirect_params[:extension_id] = params[:extension_id]
+    end
+
+    redirect_to unlock_path(redirect_params)
+  end
+
+  def extension_handoff_id
+    params[:extension_id].presence || session[:extension_id].presence
   end
 
   def unlocked_session?

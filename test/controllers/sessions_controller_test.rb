@@ -26,6 +26,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-unlock-target="importPanel"'
   end
 
+  test "locked redirect preserves extension id handoff parameter" do
+    get credentials_url(extension_id: "extension-abc")
+
+    assert_redirected_to unlock_url(extension_id: "extension-abc")
+
+    follow_redirect!
+    assert_response :success
+    assert_includes response.body, 'data-extension-connect-extension-id-value="extension-abc"'
+  end
+
   test "unlock page renders setup token field before vault registration" do
     get unlock_url
 
