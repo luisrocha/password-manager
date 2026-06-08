@@ -34,6 +34,12 @@ For the browser extension API bootstrap token, generate a high-entropy token,
 store the token itself only in the extension, and configure the server with the
 token's SHA-256 hash.
 
+To connect the browser extension without manually importing a backup file, open
+the web app from the extension's **Open web app** button. The extension adds its
+browser-local extension ID to the URL, and the web app stores it in that browser.
+After unlocking the web app, use **Connect Extension** to send the encrypted
+vault backup to the extension.
+
 ### Run With Docker Compose
 The primary Compose file runs Rails in production mode behind Caddy, which serves
 HTTPS locally and redirects HTTP to HTTPS.
