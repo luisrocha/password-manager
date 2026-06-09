@@ -36,7 +36,7 @@ export default class extends Controller {
 
     try {
       const response = await this.sendExtensionMessage({
-        type: "IMPORT_VAULT_BACKUP",
+        type: "CONNECT_VAULT_BACKUP",
         serializedBackup: exportVaultBackup()
       })
 
