@@ -1,23 +1,29 @@
 # Password Manager
 
-> 🚧 **Work in progress:** This project is actively being built and is not production-ready yet. 🚧
+Self-hosted password manager web app including browser extension API.
 
-Rails application for a self-hosted password manager.
-
-## Implemented Features
-- Client-side vault unlock flow with a configurable authenticated web session window
-- Browser API unlock flow using signed vault challenges and encrypted JWT bearer tokens
-- Encrypted storage of sensitive fields (`username`, `password`, `notes`) using client-side encrypted payloads
-- Credential management from the web UI (create, list, edit, delete)
-- Search credentials by `name` and `domain`
-- Sensitive fields hidden by default in the UI and revealed on demand
-- 1Password CSV import support (`Title`, `Website`, `Username`, `Password`, `Notes`, `Category`)
+## Features
+- Self-hosted web vault for storing and managing credentials
+- Zero-knowledge design for credential secrets: the server stores encrypted vault data and does not need the master password to unlock it
+- End-to-end encryption for sensitive credential fields, including usernames, passwords, and notes
+- Local vault key backup and restore flow for recovering access on a new browser
+- Two-factor authentication with TOTP, recovery codes, and optional 24-hour remembered clients
+- HTTPS-first production-style Docker setup for local or self-hosted deployment
+- Browser extension connection flow without manually importing a vault backup into the extension
+- Credential search, reveal-on-demand password and notes fields, and one-click copy actions
+- Add, edit, delete, and import credentials from the web UI
+- 1Password CSV import support
 
 ## Requirements
-- Ruby `3.4.7`
-- Bundler
-- SQLite3
-- Docker and Docker Compose, for containerized production-like, development, and test runs
+- Docker and Docker Compose for the recommended production-style local/self-hosted setup
+- Ruby `3.4.7`, Bundler, and SQLite3 for running the Rails app directly without Docker
+
+## Browser compatibility
+- Chrome / Chromium / Brave 89+
+- Microsoft Edge 89+
+- Firefox 108+
+- Safari 16.4+
+- iOS Safari 16.4+
 
 ## Usage
 
