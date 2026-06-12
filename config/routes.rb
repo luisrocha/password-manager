@@ -20,6 +20,7 @@ Rails.application.routes.draw do
   get "totp_challenge", to: "totp_challenges#new"
   post "totp_challenge", to: "totp_challenges#create"
   get "security", to: "security#index"
+  get "connected_apps", to: "connected_apps#index"
   resource :totp_setting, only: %i[create destroy] do
     post :confirm
   end
