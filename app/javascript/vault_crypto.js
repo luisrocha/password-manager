@@ -34,13 +34,23 @@ export function hasStoredVault() {
 }
 
 export function exportVaultBackup() {
+  const vault = readStoredVault()
+
+  return JSON.stringify(vault, null, 2)
+}
+
+export function exportCompactVaultBackup() {
+  return JSON.stringify(readStoredVault())
+}
+
+function readStoredVault() {
   const serializedVault = window.localStorage.getItem(STORAGE_KEY)
   if (!serializedVault) throw new Error("vault_missing")
 
   const vault = JSON.parse(serializedVault)
   validateVault(vault)
 
-  return JSON.stringify(vault, null, 2)
+  return vault
 }
 
 export function importVaultBackup(serializedBackup) {

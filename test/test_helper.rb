@@ -22,8 +22,8 @@ module VaultUnlockIntegrationHelper
   TEST_UNLOCK_KEY = OpenSSL::PKey::EC.generate("prime256v1")
 
   def unlock!
-    get unlock_url
-    post unlock_url, params: unlock_proof_params
+    get unlock_url, headers: unlock_request_headers
+    post unlock_url, params: unlock_proof_params, headers: unlock_request_headers
     follow_redirect! if response.redirect?
   end
 
@@ -37,6 +37,12 @@ module VaultUnlockIntegrationHelper
     params[:setup_token] = ENV["PASSWORD_MANAGER_SETUP_TOKEN"] if VaultSetupToken.token_configured?
 
     params
+  end
+
+  def unlock_request_headers
+    @unlock_request_headers ||= {
+      "REMOTE_ADDR" => "192.0.2.#{SecureRandom.random_number(254) + 1}"
+    }
   end
 end
 
