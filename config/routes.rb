@@ -10,6 +10,10 @@ Rails.application.routes.draw do
       patch "credentials/:id", to: "credentials#update"
       delete "credentials/:id", to: "credentials#destroy"
     end
+
+    namespace :mobile do
+      post "vault_pairings/redeem", to: "vault_pairings#redeem"
+    end
   end
 
   get "unlock", to: "sessions#new"
@@ -21,6 +25,7 @@ Rails.application.routes.draw do
   post "totp_challenge", to: "totp_challenges#create"
   get "security", to: "security#index"
   get "connected_apps", to: "connected_apps#index"
+  post "connected_apps/mobile_pairings", to: "connected_apps#create_mobile_pairing"
   resource :totp_setting, only: %i[create destroy] do
     post :confirm
   end
