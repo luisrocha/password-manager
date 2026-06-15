@@ -1,13 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
-import qrcode from "qrcode-generator"
-import { exportCompactVaultBackup, hasStoredVault } from "vault_crypto"
+import { exportMobileVaultTransfer, hasStoredVault } from "vault_crypto"
 
 export default class extends Controller {
-  static targets = ["button", "qrCode", "status"]
+  static targets = ["button", "code", "panel", "status"]
+  static values = { pairingUrl: String }
 
-  exportVaultKey() {
+  async createPairingCode() {
     this.clearStatus()
-    this.hideQrCode()
+    this.hidePairingCode()
 
     if (!hasStoredVault()) {
       this.setError("Unlock the vault before setting up the mobile app.")
@@ -15,31 +15,36 @@ export default class extends Controller {
     }
 
     this.buttonTarget.disabled = true
-    this.buttonTarget.textContent = "Exporting..."
+    this.buttonTarget.textContent = "Creating..."
 
     try {
-      this.qrCodeTarget.innerHTML = this.buildQrCode(exportCompactVaultBackup())
-      this.qrCodeTarget.classList.remove("hidden")
-      this.setStatus("Scan this QR code with the mobile app.")
-    } catch {
-      this.setError("This vault key is too large for one QR code. Chunked mobile setup is needed.")
+      const response = await fetch(this.pairingUrlValue, {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify({ encrypted_vault_backup: exportMobileVaultTransfer() })
+      })
+      const body = await response.json()
+
+      if (!response.ok) throw new Error(body.error || "pairing_failed")
+
+      this.showPairingCode(body.code)
+      this.setStatus(
+        `Enter this code in the mobile app within ${Math.round(body.expires_in_seconds / 60)} minutes.`
+      )
+    } catch (error) {
+      console.error(error)
+      this.setError("Could not create a mobile pairing code.")
     } finally {
       this.buttonTarget.disabled = false
-      this.buttonTarget.textContent = "Export vault key"
+      this.buttonTarget.textContent = "Create pairing code"
     }
   }
 
-  buildQrCode(serializedBackup) {
-    const qrCode = qrcode(0, "L")
-    qrCode.addData(serializedBackup, "Byte")
-    qrCode.make()
-
-    return qrCode.createSvgTag({
-      cellSize: 2,
-      margin: 8,
-      scalable: false,
-      title: "Encrypted vault key QR code"
-    })
+  headers() {
+    const headers = { "Content-Type": "application/json" }
+    const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+    if (csrfToken) headers["X-CSRF-Token"] = csrfToken
+    return headers
   }
 
   setStatus(message) {
@@ -57,8 +62,24 @@ export default class extends Controller {
     this.statusTarget.className = "hidden"
   }
 
-  hideQrCode() {
-    this.qrCodeTarget.innerHTML = ""
-    this.qrCodeTarget.classList.add("hidden")
+  showPairingCode(code) {
+    this.codeTarget.replaceChildren(...this.buildCodeCharacters(code))
+    this.panelTarget.classList.remove("hidden")
+  }
+
+  hidePairingCode() {
+    this.codeTarget.replaceChildren()
+    this.panelTarget.classList.add("hidden")
+  }
+
+  buildCodeCharacters(code) {
+    return [...code].map((character) => {
+      const span = document.createElement("span")
+      span.textContent = character
+
+      span.className = /\d/.test(character) ? "text-amber-700" : ""
+
+      return span
+    })
   }
 }

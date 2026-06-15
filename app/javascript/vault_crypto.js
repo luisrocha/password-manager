@@ -1,5 +1,3 @@
-import argon2 from "argon2_bridge"
-import * as openpgp from "openpgp"
 import { createVaultCrypto, validateVault } from "password_manager_vault_crypto"
 
 const STORAGE_KEY = "passwordManager.encryptedPrivateKey"
@@ -18,12 +16,25 @@ const storage = {
   }
 }
 
-const vaultCrypto = createVaultCrypto({
-  openpgp,
-  argon2,
-  storage,
-  storageKey: STORAGE_KEY
-})
+let vaultCrypto = null
+let vaultCryptoPromise = null
+
+async function getVaultCrypto() {
+  vaultCryptoPromise ??= Promise.all([import("openpgp"), import("argon2_bridge")]).then(
+    ([openpgp, { default: argon2 }]) => {
+      vaultCrypto = createVaultCrypto({
+        openpgp,
+        argon2,
+        storage,
+        storageKey: STORAGE_KEY
+      })
+
+      return vaultCrypto
+    }
+  )
+
+  return vaultCryptoPromise
+}
 
 export function hasStoredVault() {
   const serializedVault = window.localStorage.getItem(STORAGE_KEY)
@@ -39,8 +50,33 @@ export function exportVaultBackup() {
   return JSON.stringify(vault, null, 2)
 }
 
-export function exportCompactVaultBackup() {
-  return JSON.stringify(readStoredVault())
+export function exportMobileVaultTransfer() {
+  const vault = readStoredVault()
+
+  return JSON.stringify({
+    t: "pmv",
+    v: 1,
+    d: {
+      p: vault.publicKey,
+      e: vault.encryptedPrivateKey,
+      s: {
+        p: vault.signing.publicKeySpki,
+        e: vault.signing.encryptedPrivateKey,
+        i: vault.signing.iv
+      },
+      k: {
+        v: vault.kdf.version,
+        t: vault.kdf.time,
+        m: vault.kdf.memoryKiB,
+        p: vault.kdf.parallelism,
+        h: vault.kdf.hashLength,
+        s: vault.kdf.salt
+      },
+      c: {
+        i: vault.encryption.iv
+      }
+    }
+  })
 }
 
 function readStoredVault() {
@@ -61,10 +97,30 @@ export function importVaultBackup(serializedBackup) {
   return vault
 }
 
-export const isVaultUnlocked = vaultCrypto.isVaultUnlocked
-export const generateVault = vaultCrypto.generateVault
-export const unlockVault = vaultCrypto.unlockVault
-export const lockVault = vaultCrypto.lockVault
-export const encryptText = vaultCrypto.encryptText
-export const decryptText = vaultCrypto.decryptText
-export const buildUnlockProof = vaultCrypto.buildUnlockProof
+export function isVaultUnlocked() {
+  return vaultCrypto?.isVaultUnlocked() || false
+}
+
+export async function generateVault(masterPassword) {
+  return (await getVaultCrypto()).generateVault(masterPassword)
+}
+
+export async function unlockVault(masterPassword) {
+  return (await getVaultCrypto()).unlockVault(masterPassword)
+}
+
+export function lockVault() {
+  vaultCrypto?.lockVault()
+}
+
+export async function encryptText(plaintext) {
+  return (await getVaultCrypto()).encryptText(plaintext)
+}
+
+export async function decryptText(ciphertext) {
+  return (await getVaultCrypto()).decryptText(ciphertext)
+}
+
+export async function buildUnlockProof(challenge) {
+  return (await getVaultCrypto()).buildUnlockProof(challenge)
+}
