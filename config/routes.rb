@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  mount ActionCable.server => "/cable"
+
   get "up" => "rails/health#show", as: :rails_health_check
 
   namespace :api do
@@ -27,6 +29,7 @@ Rails.application.routes.draw do
   get "connected_apps", to: "connected_apps#index"
   post "connected_apps/mobile_pairings", to: "connected_apps#create_mobile_pairing"
   delete "connected_apps/mobile_devices/:id", to: "connected_apps#revoke_mobile_device", as: :connected_apps_mobile_device
+  delete "connected_apps/mobile_devices/:id/delete", to: "connected_apps#destroy_mobile_device", as: :destroy_connected_apps_mobile_device
   resource :totp_setting, only: %i[create destroy] do
     post :confirm
   end

@@ -8,12 +8,17 @@ class ConnectedAppsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal "no-store", response.headers["Cache-Control"]
+    assert_equal "no-cache", response.headers["Pragma"]
+    assert_equal "0", response.headers["Expires"]
     assert_includes response.body, "Connected apps"
     assert_includes response.body, '<meta name="turbo-cache-control" content="no-cache">'
+    assert_includes response.body, '<meta name="password-manager-vault-protected" content="true">'
     assert_includes response.body, "Connect Extension"
     assert_includes response.body, "Set up mobile app"
     assert_includes response.body, "Create pairing code"
     assert_includes response.body, "Mobile devices"
+    assert_includes response.body, "turbo-cable-stream-source"
+    assert_includes response.body, 'id="mobile_devices"'
     assert_includes response.body, 'data-action="extension-connect#connectExtension"'
     assert_includes response.body, 'data-action="mobile-app-setup#createPairingCode"'
   end
@@ -93,6 +98,37 @@ class ConnectedAppsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to unlock_url
     assert_nil device.reload.revoked_at
+  end
+
+  test "deletes a revoked mobile device when vault is unlocked" do
+    unlock!
+    device, = MobileDevice.issue!(name: "Luis Pixel")
+    device.revoke!
+
+    delete destroy_connected_apps_mobile_device_url(device)
+
+    assert_redirected_to connected_apps_url
+    assert_raises(ActiveRecord::RecordNotFound) { device.reload }
+  end
+
+  test "does not delete an active mobile device" do
+    unlock!
+    device, = MobileDevice.issue!(name: "Luis Pixel")
+
+    delete destroy_connected_apps_mobile_device_url(device)
+
+    assert_redirected_to connected_apps_url
+    assert MobileDevice.exists?(device.id)
+  end
+
+  test "delete mobile device redirects to unlock when vault is locked" do
+    device, = MobileDevice.issue!(name: "Luis Pixel")
+    device.revoke!
+
+    delete destroy_connected_apps_mobile_device_url(device)
+
+    assert_redirected_to unlock_url
+    assert MobileDevice.exists?(device.id)
   end
 
   private

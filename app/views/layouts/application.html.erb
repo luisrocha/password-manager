@@ -8,6 +8,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <% if vault_unlocked? %>
+      <meta name="password-manager-vault-protected" content="true">
+      <meta name="turbo-cache-control" content="no-cache">
+    <% end %>
 
     <%= yield :head %>
 
@@ -26,7 +30,7 @@
 
   <body
     class="min-h-screen bg-slate-100 text-slate-950 antialiased"
-    data-controller="extension-connect"
+    data-controller="extension-connect vault-session"
     data-extension-connect-extension-id-value="<%= extension_handoff_id %>"
   >
     <%= yield %>
