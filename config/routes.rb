@@ -15,6 +15,7 @@ Rails.application.routes.draw do
 
     namespace :mobile do
       post "vault_pairings/redeem", to: "vault_pairings#redeem"
+      get "credentials/sync", to: "credentials#sync"
     end
   end
 
