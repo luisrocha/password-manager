@@ -20,6 +20,17 @@ class ConnectedAppsController < ApplicationController
     redirect_to connected_apps_path, notice: "Mobile app access revoked.", status: :see_other
   end
 
+  def destroy_mobile_device
+    device = MobileDevice.find(params[:id])
+
+    if device.revoked_at.present?
+      device.destroy!
+      redirect_to connected_apps_path, notice: "Revoked mobile app entry deleted.", status: :see_other
+    else
+      redirect_to connected_apps_path, alert: "Revoke mobile app access before deleting it.", status: :see_other
+    end
+  end
+
   private
 
   def prevent_cached_access

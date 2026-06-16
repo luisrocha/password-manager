@@ -5,7 +5,8 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   before_action :require_vault_unlock
-  helper_method :extension_handoff_id
+  after_action :prevent_authenticated_page_cache
+  helper_method :extension_handoff_id, :vault_unlocked?
 
   def self.vault_session_ttl
     minutes = ENV.fetch("PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES", DEFAULT_VAULT_SESSION_TTL_MINUTES).to_i
@@ -32,6 +33,10 @@ class ApplicationController < ActionController::Base
     params[:extension_id].presence || session[:extension_id].presence
   end
 
+  def vault_unlocked?
+    unlocked_session?
+  end
+
   def unlocked_session?
     timestamp = session[:vault_unlocked_at]
     return false if timestamp.blank?
@@ -41,5 +46,13 @@ class ApplicationController < ActionController::Base
 
     session.delete(:vault_unlocked_at)
     false
+  end
+
+  def prevent_authenticated_page_cache
+    return unless vault_unlocked?
+
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
   end
 end
