@@ -1,7 +1,9 @@
 class ConnectedAppsController < ApplicationController
   before_action :prevent_cached_access
 
-  def index; end
+  def index
+    @mobile_devices = MobileDevice.sorted
+  end
 
   def create_mobile_pairing
     encrypted_vault_backup = params.require(:encrypted_vault_backup).to_s
@@ -10,6 +12,12 @@ class ConnectedAppsController < ApplicationController
     render json: MobileVaultPairing.create!(encrypted_vault_backup)
   rescue ActionController::ParameterMissing, JSON::ParserError, InvalidMobileVaultPayloadError
     render json: { error: "Invalid encrypted vault backup." }, status: :unprocessable_entity
+  end
+
+  def revoke_mobile_device
+    MobileDevice.find(params[:id]).revoke!
+
+    redirect_to connected_apps_path, notice: "Mobile app access revoked.", status: :see_other
   end
 
   private

@@ -70,8 +70,6 @@ class Api::Browser::AuthController < ActionController::API
       :challengeId,
       :unlock_signature,
       :unlockSignature,
-      :signing_public_key_spki,
-      :signingPublicKeySpki,
       :totp_challenge_id,
       :totpChallengeId,
       :totp_code,

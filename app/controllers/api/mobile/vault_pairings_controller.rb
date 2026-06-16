@@ -3,7 +3,15 @@ class Api::Mobile::VaultPairingsController < ActionController::API
     encrypted_vault_backup = MobileVaultPairing.redeem(params[:code])
 
     if encrypted_vault_backup.present?
-      render json: { encryptedVaultBackup: encrypted_vault_backup }
+      device, token = MobileDevice.issue!(name: params[:device_name].presence || params[:deviceName].presence || "Mobile app")
+      render json: {
+        encryptedVaultBackup: encrypted_vault_backup,
+        device: {
+          id: device.id.to_s,
+          name: device.name
+        },
+        deviceToken: token
+      }
     else
       render json: {
         error: "Pairing code expired or invalid.",

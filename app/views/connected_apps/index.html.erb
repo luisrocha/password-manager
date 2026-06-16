@@ -5,6 +5,7 @@
 <%
   primary_button_class = "inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800"
   secondary_button_class = "inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+  danger_button_class = "inline-flex min-h-11 items-center justify-center rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
 %>
 
 <main class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
@@ -69,6 +70,52 @@
         data-mobile-app-setup-target="code"
       ></p>
     </div>
+  </section>
+
+  <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div>
+      <h2 class="text-lg font-semibold text-slate-950">Mobile devices</h2>
+      <p class="mt-2 text-sm leading-6 text-slate-600">
+        Paired mobile apps can sync encrypted vault data until access is revoked.
+      </p>
+    </div>
+
+    <% if @mobile_devices.any? %>
+      <div class="mt-5 divide-y divide-slate-200 rounded-md border border-slate-200">
+        <% @mobile_devices.each do |device| %>
+          <div class="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div>
+              <p class="font-semibold text-slate-950"><%= device.name %></p>
+              <p class="mt-1 text-sm text-slate-600">
+                Connected <%= time_tag device.created_at, device.created_at.to_fs(:long) %>
+                <% if device.last_used_at.present? %>
+                  · Last synced <%= time_tag device.last_used_at, device.last_used_at.to_fs(:long) %>
+                <% end %>
+              </p>
+              <% if device.revoked_at.present? %>
+                <p class="mt-1 text-sm font-semibold text-red-700">
+                  Revoked <%= time_tag device.revoked_at, device.revoked_at.to_fs(:long) %>
+                </p>
+              <% end %>
+            </div>
+
+            <% if device.revoked_at.blank? %>
+              <%= button_to "Revoke access",
+                connected_apps_mobile_device_path(device),
+                method: :delete,
+                class: danger_button_class,
+                form: { data: { turbo_confirm: "Revoke this mobile app's sync access?" } } %>
+            <% else %>
+              <span class="inline-flex min-h-11 items-center justify-center rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-500">Revoked</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="mt-5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+        No mobile devices are connected yet.
+      </p>
+    <% end %>
   </section>
   </div>
 </main>

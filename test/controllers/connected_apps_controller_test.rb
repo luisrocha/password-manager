@@ -13,8 +13,20 @@ class ConnectedAppsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Connect Extension"
     assert_includes response.body, "Set up mobile app"
     assert_includes response.body, "Create pairing code"
+    assert_includes response.body, "Mobile devices"
     assert_includes response.body, 'data-action="extension-connect#connectExtension"'
     assert_includes response.body, 'data-action="mobile-app-setup#createPairingCode"'
+  end
+
+  test "index lists connected mobile devices" do
+    unlock!
+    MobileDevice.issue!(name: "Luis Pixel")
+
+    get connected_apps_url
+
+    assert_response :success
+    assert_includes response.body, "Luis Pixel"
+    assert_includes response.body, "Revoke access"
   end
 
   test "index redirects to unlock when vault is locked" do
@@ -62,6 +74,25 @@ class ConnectedAppsControllerTest < ActionDispatch::IntegrationTest
       headers: { "Content-Type" => "application/json" }
 
     assert_redirected_to unlock_url
+  end
+
+  test "revokes a mobile device when vault is unlocked" do
+    unlock!
+    device, = MobileDevice.issue!(name: "Luis Pixel")
+
+    delete connected_apps_mobile_device_url(device)
+
+    assert_redirected_to connected_apps_url
+    assert device.reload.revoked_at.present?
+  end
+
+  test "revoke mobile device redirects to unlock when vault is locked" do
+    device, = MobileDevice.issue!(name: "Luis Pixel")
+
+    delete connected_apps_mobile_device_url(device)
+
+    assert_redirected_to unlock_url
+    assert_nil device.reload.revoked_at
   end
 
   private
