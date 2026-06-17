@@ -8,7 +8,9 @@ export default class extends Controller {
 
   connect() {
     this.clearSecrets = this.clearSecrets.bind(this)
+    this.revealUsername = this.revealUsername.bind(this)
     document.addEventListener("turbo:before-cache", this.clearSecrets)
+    document.addEventListener("turbo:render", this.revealUsername)
     window.addEventListener("vault:lock", this.clearSecrets)
 
     this.revealUsername()
@@ -16,6 +18,7 @@ export default class extends Controller {
 
   disconnect() {
     document.removeEventListener("turbo:before-cache", this.clearSecrets)
+    document.removeEventListener("turbo:render", this.revealUsername)
     window.removeEventListener("vault:lock", this.clearSecrets)
   }
 

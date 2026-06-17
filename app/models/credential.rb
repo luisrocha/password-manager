@@ -6,7 +6,7 @@ class Credential < ApplicationRecord
   validates :category, inclusion: { in: CATEGORIES }
   validates :encrypted_secret_payload, presence: true
 
-  after_commit :broadcast_credentials_index
+  after_commit :broadcast_credentials_refresh
 
   scope :sorted, -> { order(:name, :domain) }
 
@@ -23,12 +23,7 @@ class Credential < ApplicationRecord
 
   private
 
-  def broadcast_credentials_index
-    Turbo::StreamsChannel.broadcast_replace_to(
-      self.class.broadcast_stream_name,
-      target: "credentials_index",
-      partial: "credentials/index_list",
-      locals: { credentials: self.class.sorted }
-    )
+  def broadcast_credentials_refresh
+    broadcast_refresh_to self.class.broadcast_stream_name
   end
 end

@@ -291,7 +291,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Hidden"
   end
 
-  test "index does not subscribe search results to credential broadcasts" do
+  test "index subscribes search results to credential refreshes" do
     Credential.create!(
       name: "GitHub",
       domain: "github.com",
@@ -303,7 +303,9 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "id=\"credentials_index\""
-    assert_not_includes response.body, "signed-stream-name"
+    assert_includes response.body, "signed-stream-name"
+    assert_includes response.body, "turbo-refresh-method"
+    assert_includes response.body, "turbo-refresh-scroll"
   end
 
   test "updates a credential" do
