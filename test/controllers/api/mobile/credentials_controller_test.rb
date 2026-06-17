@@ -1,6 +1,8 @@
 require "test_helper"
 
 class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
+  include ActionCable::TestHelper
+
   ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nmobile-sync-payload\n-----END PGP MESSAGE-----".freeze
   UPDATED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nupdated-mobile-sync-payload\n-----END PGP MESSAGE-----".freeze
 
@@ -57,25 +59,27 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
   test "creates credentials from mobile pending operations" do
     _device, token = MobileDevice.issue!(name: "Luis Pixel")
 
-    post api_mobile_credentials_sync_url,
-      params: {
-        operations: [
-          {
-            id: "operation_create",
-            type: "create",
-            localId: "credential_local",
-            serverId: nil,
-            credential: {
-              displayName: "Mobile item",
-              domain: "mobile.test",
-              category: "login",
-              encryptedSecretPayload: ENCRYPTED_PAYLOAD
+    assert_broadcasts Credential.broadcast_stream_name, 1 do
+      post api_mobile_credentials_sync_url,
+        params: {
+          operations: [
+            {
+              id: "operation_create",
+              type: "create",
+              localId: "credential_local",
+              serverId: nil,
+              credential: {
+                displayName: "Mobile item",
+                domain: "mobile.test",
+                category: "login",
+                encryptedSecretPayload: ENCRYPTED_PAYLOAD
+              }
             }
-          }
-        ]
-      },
-      headers: { "Authorization" => "Bearer #{token}" },
-      as: :json
+          ]
+        },
+        headers: { "Authorization" => "Bearer #{token}" },
+        as: :json
+    end
 
     assert_response :success
     operation = response.parsed_body.fetch("operations").first
