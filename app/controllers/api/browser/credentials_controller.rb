@@ -35,7 +35,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     credential = Credential.find(params[:id])
 
     render json: {
-      credential: credential_payload(credential)
+      credential: credential_metadata(credential)
     }
   end
 
@@ -182,16 +182,7 @@ class Api::Browser::CredentialsController < Api::BaseController
   end
 
   def credential_metadata(credential)
-    {
-      id: credential.id.to_s,
-      displayName: credential.name,
-      domain: credential.domain.to_s,
-      encryptedSecretPayload: credential.encrypted_secret_payload
-    }
-  end
-
-  def credential_payload(credential)
-    credential_metadata(credential)
+    CredentialSerializer.new(credential).as_json
   end
 
   def encrypted_secret_payload(permitted_params)

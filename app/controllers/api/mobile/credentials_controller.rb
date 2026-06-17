@@ -1,21 +1,13 @@
 class Api::Mobile::CredentialsController < Api::Mobile::BaseController
   def sync
-    render json: {
-      credentials: Credential.sorted.map { |credential| credential_payload(credential) },
-      syncedAt: Time.current.iso8601
-    }
+    render json: MobileCredentialSync.call(operations: sync_operations)
   end
 
   private
 
-  def credential_payload(credential)
-    {
-      id: credential.id.to_s,
-      displayName: credential.name,
-      domain: credential.domain.to_s,
-      category: credential.category,
-      encryptedSecretPayload: credential.encrypted_secret_payload,
-      updatedAt: credential.updated_at.iso8601
-    }
+  def sync_operations
+    return [] unless request.post?
+
+    params.fetch(:operations, []).map(&:to_unsafe_h)
   end
 end
