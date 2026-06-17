@@ -1,6 +1,8 @@
 require "test_helper"
 
 class CredentialTest < ActiveSupport::TestCase
+  include ActionCable::TestHelper
+
   ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nopaque-test-payload\n-----END PGP MESSAGE-----".freeze
 
   test "validates required attributes" do
@@ -48,5 +50,17 @@ class CredentialTest < ActiveSupport::TestCase
     credential = Credential.new(name: "Long Domain", domain: long_domain, category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     assert credential.valid?
+  end
+
+  test "broadcasts credential index changes" do
+    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+
+    assert_broadcasts Credential.broadcast_stream_name, 1 do
+      credential.update!(name: "GitHub Personal")
+    end
+
+    assert_broadcasts Credential.broadcast_stream_name, 1 do
+      credential.destroy!
+    end
   end
 end

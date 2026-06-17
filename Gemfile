@@ -23,3 +23,5 @@ gem "capybara", "~> 3.40", group: :test
 gem "selenium-webdriver", "~> 4.44", group: :test
 gem "factory_bot_rails", "~> 6.5", group: :test
 gem "ffaker", "~> 2.25", group: :test
+
+gem "solid_cable", "~> 4.0"

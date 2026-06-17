@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_16_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_17_120000) do
   create_table "credentials", force: :cascade do |t|
     t.string "category", default: "login", null: false
     t.datetime "created_at", null: false
@@ -31,6 +31,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_090000) do
     t.datetime "updated_at", null: false
     t.index ["revoked_at"], name: "index_mobile_devices_on_revoked_at"
     t.index ["token_digest"], name: "index_mobile_devices_on_token_digest", unique: true
+  end
+
+  create_table "solid_cable_messages", force: :cascade do |t|
+    t.binary "channel", limit: 1024, null: false
+    t.integer "channel_hash", limit: 8, null: false
+    t.datetime "created_at", null: false
+    t.binary "payload", limit: 536870912, null: false
+    t.index ["channel"], name: "index_solid_cable_messages_on_channel"
+    t.index ["channel_hash"], name: "index_solid_cable_messages_on_channel_hash"
+    t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
   create_table "totp_remembered_clients", force: :cascade do |t|

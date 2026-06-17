@@ -279,6 +279,8 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "data-controller=\"credential-reveal\""
+    assert_includes response.body, "signed-stream-name"
+    assert_includes response.body, "id=\"credentials_index\""
     assert_includes response.body, "data-credential-reveal-encrypted-payload-value="
     assert_includes response.body, "data-credential-reveal-target=\"username\""
     assert_includes response.body, "data-action=\"credential-reveal#revealPassword\""
@@ -287,6 +289,21 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "top-secret-password"
     assert_includes response.body, "Decrypting..."
     assert_includes response.body, "Hidden"
+  end
+
+  test "index does not subscribe search results to credential broadcasts" do
+    Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
+    )
+
+    get credentials_url, params: { q: "git" }
+
+    assert_response :success
+    assert_includes response.body, "id=\"credentials_index\""
+    assert_not_includes response.body, "signed-stream-name"
   end
 
   test "updates a credential" do
