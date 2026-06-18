@@ -279,6 +279,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "data-controller=\"credential-reveal\""
+    assert_includes response.body, "data-controller=\"credentials-live\""
     assert_includes response.body, "signed-stream-name"
     assert_includes response.body, "id=\"credentials_index\""
     assert_includes response.body, "data-credential-reveal-encrypted-payload-value="
@@ -291,7 +292,7 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Hidden"
   end
 
-  test "index subscribes search results to credential refreshes" do
+  test "index subscribes search results to credential live updates" do
     Credential.create!(
       name: "GitHub",
       domain: "github.com",
@@ -304,8 +305,9 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "id=\"credentials_index\""
     assert_includes response.body, "signed-stream-name"
-    assert_includes response.body, "turbo-refresh-method"
-    assert_includes response.body, "turbo-refresh-scroll"
+    assert_includes response.body, "data-controller=\"credentials-live\""
+    assert_not_includes response.body, "turbo-refresh-method"
+    assert_not_includes response.body, "turbo-refresh-scroll"
   end
 
   test "updates a credential" do
