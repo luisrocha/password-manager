@@ -6,7 +6,7 @@ class Credential < ApplicationRecord
   validates :category, inclusion: { in: CATEGORIES }
   validates :encrypted_secret_payload, presence: true
 
-  after_commit :broadcast_credentials_refresh
+  after_commit :broadcast_credentials_index_refresh
 
   scope :sorted, -> { order(:name, :domain) }
 
@@ -23,7 +23,10 @@ class Credential < ApplicationRecord
 
   private
 
-  def broadcast_credentials_refresh
-    broadcast_refresh_to self.class.broadcast_stream_name
+  def broadcast_credentials_index_refresh
+    broadcast_action_to self.class.broadcast_stream_name,
+      action: :refresh_credentials,
+      target: "credentials_index",
+      render: false
   end
 end
