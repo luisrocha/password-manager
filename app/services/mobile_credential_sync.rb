@@ -41,11 +41,21 @@ class MobileCredentialSync
   end
 
   def create_credential_from_operation(operation)
-    credential = Credential.create!(credential_attributes(operation.fetch("credential", {})))
+    credential = create_idempotent_credential(operation)
 
     operation_result(operation, "confirmed", credential:)
   rescue ActiveRecord::RecordInvalid, KeyError
     operation_result(operation, "failed", code: "invalid_credential")
+  end
+
+  def create_idempotent_credential(operation)
+    attributes = credential_attributes(operation.fetch("credential", {}))
+    client_uid = operation["localId"].presence
+    return Credential.create!(attributes) if client_uid.blank?
+
+    Credential.create_or_find_by!(client_uid:) do |credential|
+      credential.assign_attributes(attributes)
+    end
   end
 
   def update_credential_from_operation(operation)

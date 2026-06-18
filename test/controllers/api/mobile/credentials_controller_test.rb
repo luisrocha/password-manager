@@ -92,6 +92,36 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }, credential.id.to_s
   end
 
+  test "reuses credentials for retried mobile create operations" do
+    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+    operation = {
+      id: "operation_create",
+      type: "create",
+      localId: "credential_local",
+      serverId: nil,
+      credential: {
+        displayName: "Mobile item",
+        domain: "mobile.test",
+        category: "login",
+        encryptedSecretPayload: ENCRYPTED_PAYLOAD
+      }
+    }
+
+    2.times do
+      post api_mobile_credentials_sync_url,
+        params: { operations: [operation] },
+        headers: { "Authorization" => "Bearer #{token}" },
+        as: :json
+
+      assert_response :success
+      assert_equal "confirmed", response.parsed_body.fetch("operations").first.fetch("status")
+    end
+
+    credentials = Credential.where(client_uid: "credential_local")
+    assert_equal 1, credentials.count
+    assert_equal 1, Credential.where(domain: "mobile.test").count
+  end
+
   test "updates credentials from mobile pending operations" do
     credential = Credential.create!(
       name: "Old",

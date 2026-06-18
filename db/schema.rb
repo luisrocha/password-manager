@@ -10,14 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_17_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_18_143836) do
   create_table "credentials", force: :cascade do |t|
     t.string "category", default: "login", null: false
+    t.string "client_uid"
     t.datetime "created_at", null: false
     t.string "domain"
     t.text "encrypted_secret_payload", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
+    t.index ["client_uid"], name: "index_credentials_on_client_uid", unique: true, where: "client_uid IS NOT NULL"
     t.index ["domain"], name: "index_credentials_on_domain"
     t.index ["name"], name: "index_credentials_on_name"
   end
@@ -68,4 +70,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_120000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "webauthn_clients", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "last_used_at"
+    t.datetime "revoked_at"
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_webauthn_clients_on_expires_at"
+    t.index ["token_digest"], name: "index_webauthn_clients_on_token_digest", unique: true
+  end
+
+  create_table "webauthn_credentials", force: :cascade do |t|
+    t.string "aaguid"
+    t.datetime "created_at", null: false
+    t.string "external_id", null: false
+    t.datetime "last_used_at"
+    t.string "nickname"
+    t.text "public_key", null: false
+    t.bigint "sign_count", default: 0, null: false
+    t.text "transports"
+    t.datetime "updated_at", null: false
+    t.index ["external_id"], name: "index_webauthn_credentials_on_external_id", unique: true
+  end
 end
