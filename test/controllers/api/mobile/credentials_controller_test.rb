@@ -284,6 +284,41 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_mobile_sync_signature", response.parsed_body.fetch("code")
   end
 
+  test "rejects mobile write sync when the signed body is changed" do
+    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+    signed_params = { operations: [] }
+    tampered_params = {
+      operations: [
+        {
+          id: "operation_create",
+          type: "create",
+          localId: "credential_local",
+          serverId: nil,
+          credential: {
+            displayName: "Tampered",
+            domain: "tampered.test",
+            category: "login",
+            encryptedSecretPayload: ENCRYPTED_PAYLOAD
+          }
+        }
+      ]
+    }
+
+    assert_no_difference("Credential.count") do
+      post api_mobile_credentials_sync_url,
+        params: tampered_params.to_json,
+        headers: mobile_sync_headers(
+          token,
+          params: signed_params,
+          method: "POST",
+          path: api_mobile_credentials_sync_path
+        )
+    end
+
+    assert_response :unauthorized
+    assert_equal "invalid_mobile_sync_signature", response.parsed_body.fetch("code")
+  end
+
   test "rejects mobile write sync with a mismatched signing key" do
     _device, token = MobileDevice.issue!(name: "Luis Pixel")
     register_vault_signing_key!
