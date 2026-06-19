@@ -49,4 +49,26 @@ class VaultRateLimitTest < ActionDispatch::IntegrationTest
     assert_response :too_many_requests
     assert_equal "too_many_requests", response.parsed_body["code"]
   end
+
+  test "rate limits mobile pairing redemption attempts" do
+    Api::Mobile::VaultPairingsController::PAIRING_REDEEM_THROTTLE_LIMIT.times do
+      post "/api/mobile/vault_pairings/redeem", params: { code: "NOPE-0000" }, as: :json
+    end
+    post "/api/mobile/vault_pairings/redeem", params: { code: "NOPE-0000" }, as: :json
+
+    assert_response :too_many_requests
+    assert_equal "too_many_requests", response.parsed_body["code"]
+  end
+
+  test "rate limits mobile sync attempts" do
+    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+
+    Api::Mobile::BaseController::MOBILE_SYNC_THROTTLE_LIMIT.times do
+      get "/api/mobile/credentials/sync", headers: { "Authorization" => "Bearer #{token}" }, as: :json
+    end
+    get "/api/mobile/credentials/sync", headers: { "Authorization" => "Bearer #{token}" }, as: :json
+
+    assert_response :too_many_requests
+    assert_equal "too_many_requests", response.parsed_body["code"]
+  end
 end
