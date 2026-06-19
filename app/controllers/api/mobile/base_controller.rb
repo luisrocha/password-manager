@@ -1,4 +1,13 @@
 class Api::Mobile::BaseController < ActionController::API
+  include RateLimitResponse
+
+  MOBILE_SYNC_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_MOBILE_SYNC_THROTTLE_LIMIT", 60).to_i
+
+  rate_limit to: MOBILE_SYNC_THROTTLE_LIMIT,
+    within: 1.minute,
+    with: :render_rate_limit_response,
+    name: "mobile_sync"
+
   before_action :authenticate_mobile_device!
 
   private
