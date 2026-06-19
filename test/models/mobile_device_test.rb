@@ -36,6 +36,13 @@ class MobileDeviceTest < ActiveSupport::TestCase
     assert device.reload.last_used_at.present?
   end
 
+  test "does not authenticate unknown token digests" do
+    device, token = MobileDevice.issue!
+
+    assert_nil MobileDevice.authenticate("#{token}-wrong")
+    assert_nil device.reload.last_used_at
+  end
+
   test "does not authenticate revoked device tokens" do
     device, token = MobileDevice.issue!
     device.revoke!

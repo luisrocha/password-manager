@@ -13,6 +13,7 @@ class Api::Mobile::VaultPairingsControllerTest < ActionDispatch::IntegrationTest
     assert response_body.fetch("deviceToken").present?
     assert_equal 1, MobileDevice.count
     assert_equal MobileDevice.digest(response_body.fetch("deviceToken")), MobileDevice.last.token_digest
+    assert_not_equal response_body.fetch("deviceToken"), MobileDevice.last.token_digest
 
     post api_mobile_vault_pairings_redeem_url, params: { code: pairing.fetch(:code) }
 
@@ -21,10 +22,22 @@ class Api::Mobile::VaultPairingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns not found for unknown mobile vault pairing code" do
-    post api_mobile_vault_pairings_redeem_url, params: { code: "NOPE-0000" }
+    assert_no_difference("MobileDevice.count") do
+      post api_mobile_vault_pairings_redeem_url, params: { code: "NOPE-0000" }
+    end
 
     assert_response :not_found
     assert_equal "pairing_not_found", JSON.parse(response.body).fetch("code")
+  end
+
+  test "normalizes pairing codes before redeeming" do
+    pairing = MobileVaultPairing.create!(compact_mobile_vault_payload)
+
+    post api_mobile_vault_pairings_redeem_url,
+      params: { code: pairing.fetch(:code).delete("-").downcase }
+
+    assert_response :success
+    assert_equal compact_mobile_vault_payload, response.parsed_body.fetch("encryptedVaultBackup")
   end
 
   test "redeems a mobile vault pairing with a device name" do
