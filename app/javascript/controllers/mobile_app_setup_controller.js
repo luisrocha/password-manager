@@ -31,8 +31,7 @@ export default class extends Controller {
       this.setStatus(
         `Enter this code in the mobile app within ${Math.round(body.expires_in_seconds / 60)} minutes.`
       )
-    } catch (error) {
-      console.error(error)
+    } catch {
       this.setError("Could not create a mobile pairing code.")
     } finally {
       this.buttonTarget.disabled = false
