@@ -1,18 +1,19 @@
 # Password Manager
 
-Self-hosted password manager web app including browser extension API.
+Self-hosted password manager web app including browser extension and mobile app support.
 
 ## Features
 - Self-hosted web vault for storing and managing credentials
-- Zero-knowledge design for credential secrets: the server stores encrypted vault data and does not need the master password to unlock it
+- Zero-knowledge design for credential secrets: the server only stores encrypted vault data
 - End-to-end encryption for sensitive credential fields, including usernames, passwords, and notes
 - Local vault key backup and restore flow for recovering access on a new browser
 - Two-factor authentication with TOTP, recovery codes, and optional 24-hour remembered clients
-- HTTPS-first production-style Docker setup for local or self-hosted deployment
-- Browser extension connection flow without manually importing a vault backup into the extension
 - Credential search, reveal-on-demand password and notes fields, and one-click copy actions
 - Add, edit, delete, and import credentials from the web UI
 - 1Password CSV import support
+- HTTPS-first production-style Docker setup for local or self-hosted deployment
+- Browser extension support (check https://github.com/luisrocha/password-manager-extension)
+- Connect, sync and manage credentials with a mobile device app (check https://github.com/luisrocha/password-manager-mobile)
 
 ## Requirements
 - Docker and Docker Compose for the recommended production-style local/self-hosted setup
@@ -107,8 +108,16 @@ Then open `http://localhost:3000`.
 
 ### Running tests locally
 ```bash
+bin/style
+bin/security
 bin/rails test
 bin/rails test:system
+```
+
+Or run the CI script:
+
+```bash
+bin/ci
 ```
 
 ### Running tests in Docker
