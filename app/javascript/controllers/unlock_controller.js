@@ -21,6 +21,7 @@ export default class extends Controller {
     "setupConfirmation",
     "setupToken",
     "unlockPassword",
+    "unlockPasswordVisibilityButton",
     "backupFile",
     "cancelImportButton",
     "flow",
@@ -100,6 +101,15 @@ export default class extends Controller {
     } catch {
       this.showError("Invalid master password.")
     }
+  }
+
+  toggleUnlockPasswordVisibility() {
+    const isVisible = this.unlockPasswordTarget.type === "text"
+
+    this.unlockPasswordTarget.type = isVisible ? "password" : "text"
+    this.unlockPasswordVisibilityButtonTarget.classList.toggle("is-visible", !isVisible)
+    this.unlockPasswordVisibilityButtonTarget.setAttribute("aria-label", isVisible ? "Show password" : "Hide password")
+    this.unlockPasswordVisibilityButtonTarget.title = isVisible ? "Show password" : "Hide password"
   }
 
   async importBackup(event) {

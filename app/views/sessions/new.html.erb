@@ -63,7 +63,17 @@
 
       <div class="hidden space-y-4" data-unlock-target="unlockPanel">
         <%= form_with url: unlock_path, method: :post, local: true, data: { action: "submit->unlock#unlock" } do |f| %>
-          <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", placeholder: "Master password", aria: { label: "Master password" }, class: "block w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "unlockPassword" } %>
+          <div class="flex items-center gap-2">
+            <%= f.password_field :local_master_password, required: true, autofocus: true, autocomplete: "current-password", placeholder: "Master password", aria: { label: "Master password" }, class: "block min-h-11 w-full rounded-md border-slate-300 px-3 py-2 text-base shadow-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20", data: { unlock_target: "unlockPassword" } %>
+            <button
+              type="button"
+              class="icon-button table-icon-button unlock-password-visibility-button shrink-0 password-visibility-button"
+              aria-label="Show password"
+              title="Show password"
+              data-unlock-target="unlockPasswordVisibilityButton"
+              data-action="unlock#toggleUnlockPasswordVisibility"
+            ></button>
+          </div>
 
           <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
             <%= f.submit "Unlock", class: "inline-flex min-h-11 items-center justify-center rounded-md border border-teal-700 bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800" %>

@@ -92,6 +92,15 @@ input[type="submit"]:not([class]) {
   --icon-url: url("icons/eye-off.svg");
 }
 
+.table-icon-button.unlock-password-visibility-button {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  border-color: var(--line);
+  background: white;
+  color: #475569;
+}
+
 a:not([class]) {
   color: var(--accent);
 }
