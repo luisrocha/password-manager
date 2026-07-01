@@ -28,4 +28,4 @@ test:
 # ensure the database is located in a persisted volume.
 production:
   <<: *default
-  database: storage/production.sqlite3
+  database: <%= File.join(ENV["VOLUME_MOUNT_PATH"].presence || "storage", "production.sqlite3") %>

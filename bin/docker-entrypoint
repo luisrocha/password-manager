@@ -9,6 +9,7 @@ if [ "${RAILS_ENV}" = "production" ]; then
     exit 1
   fi
 
+  mkdir -p "${VOLUME_MOUNT_PATH:-storage}"
   bin/rails db:prepare
 fi
 
