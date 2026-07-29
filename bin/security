@@ -10,4 +10,6 @@ if [ -n "$tracked_blocked" ]; then
   exit 1
 fi
 
+sha256sum --check vendor/javascript/checksums.sha256 --quiet
+
 echo "Security check passed: no blocked secret files are tracked."
