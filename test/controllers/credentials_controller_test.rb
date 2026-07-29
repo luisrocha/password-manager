@@ -41,6 +41,93 @@ class CredentialsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "data-controller=\"credential-import\""
     assert_includes response.body, "data-action=\"submit-&gt;credential-import#submit\""
+    assert_includes response.body, "Export CSV"
+    assert_includes response.body, "data-action=\"credential-import#export\""
+    assert_includes response.body, "data-action=\"submit->credential-import#confirmExport\""
+    assert_includes response.body, "credential_export_master_password"
+    assert_not_includes response.body, "credential_export_two_factor_code"
+  end
+
+  test "import export modal asks for two-factor code when enabled" do
+    TotpSetting.create!(secret: TotpSetting.generate_secret, enabled_at: Time.current)
+
+    get import_credentials_url
+
+    assert_response :success
+    assert_includes response.body, "credential_export_two_factor_code"
+  end
+
+  test "import page does not eagerly expose encrypted credentials for csv export" do
+    Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
+    )
+
+    get import_credentials_url
+
+    assert_response :success
+    assert_includes response.body, "data-credential-import-export-url-value="
+    assert_not_includes response.body, "opaque-test-payload"
+  end
+
+  test "csv export returns encrypted credentials for browser-side decrypt" do
+    credential = Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
+    )
+
+    post export_credentials_url, as: :json
+
+    assert_response :success
+    exported = response.parsed_body.fetch("credentials").first
+    assert_equal credential.id.to_s, exported.fetch("id")
+    assert_equal "GitHub", exported.fetch("displayName")
+    assert_equal "github.com", exported.fetch("domain")
+    assert_equal "login", exported.fetch("category")
+    assert_equal ENCRYPTED_PAYLOAD, exported.fetch("encryptedSecretPayload")
+    assert_not_includes response.body, "super-secret"
+  end
+
+  test "csv export requires valid two-factor code when enabled" do
+    Credential.create!(
+      name: "GitHub",
+      domain: "github.com",
+      category: "login",
+      encrypted_secret_payload: ENCRYPTED_PAYLOAD
+    )
+    setting = TotpSetting.create!(secret: TotpSetting.generate_secret, enabled_at: Time.current)
+
+    post export_credentials_url, params: { code: "000000" }, as: :json
+
+    assert_response :unauthorized
+    assert_equal "invalid_totp_code", response.parsed_body.fetch("code")
+
+    post export_credentials_url, params: { code: ROTP::TOTP.new(setting.secret).now }, as: :json
+
+    assert_response :success
+    assert_equal 1, response.parsed_body.fetch("credentials").size
+  end
+
+  test "csv export accepts recovery code once when two-factor is enabled" do
+    recovery_codes = TotpSetting.generate_recovery_codes
+    setting = TotpSetting.create!(
+      secret: TotpSetting.generate_secret,
+      enabled_at: Time.current,
+      recovery_codes:
+    )
+
+    post export_credentials_url, params: { code: recovery_codes.first }, as: :json
+
+    assert_response :success
+    assert_equal recovery_codes.count - 1, setting.reload.recovery_codes_remaining
+
+    post export_credentials_url, params: { code: recovery_codes.first }, as: :json
+
+    assert_response :unauthorized
   end
 
   test "creates a credential" do

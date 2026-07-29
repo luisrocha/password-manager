@@ -40,6 +40,7 @@ Rails.application.routes.draw do
 
   resources :credentials, only: %i[index new create edit update destroy] do
     collection do
+      post :export
       get :import
       post :import
     end

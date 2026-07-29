@@ -1,4 +1,4 @@
-import { encryptText } from "vault_crypto"
+import { decryptText, encryptText } from "vault_crypto"
 
 const HEADER_MAP = {
   title: "name",
@@ -13,6 +13,7 @@ const HEADER_MAP = {
 }
 
 const CATEGORIES = ["login", "note", "api_key", "server", "database"]
+const EXPORT_HEADERS = ["Title", "Website", "Username", "Password", "Notes", "Category"]
 
 export async function buildEncryptedImportRows(csv) {
   const rows = parseRows(csv).map((row) => normalizeRow(row))
@@ -28,6 +29,23 @@ export async function buildEncryptedImportRows(csv) {
       notes: row.notes
     }))
   })))
+}
+
+export async function buildCredentialExportCsv(credentials) {
+  const rows = await Promise.all(credentials.map(async (credential) => {
+    const payload = JSON.parse(await decryptText(credential.encryptedSecretPayload))
+
+    return [
+      credential.displayName,
+      credential.domain,
+      payload.username,
+      payload.password,
+      payload.notes,
+      credential.category
+    ]
+  }))
+
+  return [EXPORT_HEADERS, ...rows].map((row) => row.map(csvValue).join(",")).join("\n") + "\n"
 }
 
 function parseRows(csv) {
@@ -97,4 +115,8 @@ function validateRows(rows) {
       throw new Error(`Row ${index + 2} is missing name, domain, or username.`)
     }
   })
+}
+
+function csvValue(value) {
+  return `"${String(value || "").replaceAll("\"", "\"\"")}"`
 }

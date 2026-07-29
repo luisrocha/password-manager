@@ -1,5 +1,14 @@
 class CredentialsController < ApplicationController
+  include RateLimitResponse
+
+  EXPORT_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_CREDENTIAL_EXPORT_THROTTLE_LIMIT", 10).to_i
+
   before_action :set_credential, only: %i[edit update destroy]
+  rate_limit to: EXPORT_THROTTLE_LIMIT,
+    within: 1.minute,
+    only: :export,
+    with: :render_rate_limit_response,
+    name: "credential_export"
 
   def index
     @query = params[:q].to_s
@@ -24,6 +33,7 @@ class CredentialsController < ApplicationController
   end
 
   def import
+    @totp_enabled = TotpSetting.enabled?
     return if request.get?
 
     if params[:encrypted_import] == "1"
@@ -32,6 +42,17 @@ class CredentialsController < ApplicationController
     end
 
     redirect_to import_credentials_path, alert: "CSV import must be encrypted in the browser before it can be stored."
+  end
+
+  def export
+    if TotpSetting.enabled? && !TotpSetting.valid_second_factor_code?(params[:code])
+      render json: { error: "Two-factor code is invalid.", code: "invalid_totp_code" }, status: :unauthorized
+      return
+    end
+
+    render json: {
+      credentials: Credential.sorted.map { |credential| CredentialSerializer.new(credential).sync_json }
+    }
   end
 
   def update

@@ -31,10 +31,7 @@ class TotpChallengesController < ApplicationController
   private
 
   def valid_second_factor_code?
-    setting = TotpSetting.current
-    return false if setting.blank?
-
-    setting.verify(params[:code]) || setting.consume_recovery_code(params[:code])
+    TotpSetting.valid_second_factor_code?(params[:code])
   end
 
   def remember_client?

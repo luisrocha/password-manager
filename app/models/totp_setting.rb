@@ -15,6 +15,13 @@ class TotpSetting < ApplicationRecord
     current&.enabled?
   end
 
+  def self.valid_second_factor_code?(code)
+    setting = current
+    return false if setting.blank?
+
+    setting.verify(code) || setting.consume_recovery_code(code)
+  end
+
   def self.generate_secret
     ROTP::Base32.random_base32
   end
