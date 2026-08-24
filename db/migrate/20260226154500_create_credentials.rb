@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 class CreateCredentials < ActiveRecord::Migration[8.1]
   def change
     create_table :credentials do |t|
       t.string :name, null: false
       t.string :domain
-      t.string :category, null: false, default: "login"
+      t.string :category, null: false, default: 'login'
       t.text :username
       t.text :password
       t.text :notes

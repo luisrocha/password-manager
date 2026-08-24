@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateVaultSigningKeys < ActiveRecord::Migration[8.1]
   def change
     create_table :vault_signing_keys do |t|

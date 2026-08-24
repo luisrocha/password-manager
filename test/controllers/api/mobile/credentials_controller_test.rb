@@ -1,88 +1,92 @@
-require "test_helper"
+# frozen_string_literal: true
+
+require 'test_helper'
 
 class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
   include ActionCable::TestHelper
 
-  ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nmobile-sync-payload\n-----END PGP MESSAGE-----".freeze
-  UPDATED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nupdated-mobile-sync-payload\n-----END PGP MESSAGE-----".freeze
+  ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nmobile-sync-payload\n-----END PGP MESSAGE-----"
+  UPDATED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nupdated-mobile-sync-payload\n-----END PGP MESSAGE-----"
   SIGNING_KEY = VaultUnlockIntegrationHelper::TEST_UNLOCK_KEY
 
-  test "syncs all encrypted credentials with an active mobile device token" do
+  test 'syncs all encrypted credentials with an active mobile device token' do
     first = Credential.create!(
-      name: "GitHub",
-      domain: "github.com",
-      category: "login",
+      name: 'GitHub',
+      domain: 'github.com',
+      category: 'login',
       encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
     second = Credential.create!(
-      name: "Server",
-      domain: "server.local",
-      category: "server",
+      name: 'Server',
+      domain: 'server.local',
+      category: 'server',
       encrypted_secret_payload: UPDATED_PAYLOAD
     )
-    device, token = MobileDevice.issue!(name: "Luis Pixel")
+    device, token = MobileDevice.issue!(name: 'Luis Pixel')
     register_vault_signing_key!
 
     get api_mobile_credentials_sync_url,
-      headers: mobile_sync_headers(token, method: "GET", path: api_mobile_credentials_sync_path),
-      as: :json
+        headers: mobile_sync_headers(token, method: 'GET', path: api_mobile_credentials_sync_path),
+        as: :json
 
     assert_response :success
-    credentials = response.parsed_body.fetch("credentials")
-    assert_equal [first.id.to_s, second.id.to_s].sort, credentials.map { |item| item.fetch("id") }.sort
-    assert_equal ["GitHub", "Server"], credentials.map { |item| item.fetch("displayName") }.sort
-    assert_equal ["login", "server"], credentials.map { |item| item.fetch("category") }.sort
-    assert_equal [ENCRYPTED_PAYLOAD, UPDATED_PAYLOAD].sort, credentials.map { |item| item.fetch("encryptedSecretPayload") }.sort
-    assert credentials.all? { |item| item.fetch("updatedAt").present? }
-    assert response.parsed_body.fetch("syncedAt").present?
+    credentials = response.parsed_body.fetch('credentials')
+    assert_equal [first.id.to_s, second.id.to_s].sort, credentials.map { |item| item.fetch('id') }.sort
+    assert_equal %w[GitHub Server], credentials.map { |item| item.fetch('displayName') }.sort
+    assert_equal %w[login server], credentials.map { |item| item.fetch('category') }.sort
+    assert_equal [ENCRYPTED_PAYLOAD, UPDATED_PAYLOAD].sort, credentials.map { |item|
+      item.fetch('encryptedSecretPayload')
+    }.sort
+    assert(credentials.all? { |item| item.fetch('updatedAt').present? })
+    assert response.parsed_body.fetch('syncedAt').present?
     assert device.reload.last_used_at.present?
     credentials.each { |credential| assert_no_plaintext_secret_keys(credential) }
   end
 
-  test "rejects missing mobile device tokens" do
+  test 'rejects missing mobile device tokens' do
     get api_mobile_credentials_sync_url, as: :json
 
     assert_response :unauthorized
-    assert_equal "invalid_mobile_device_token", response.parsed_body.fetch("code")
+    assert_equal 'invalid_mobile_device_token', response.parsed_body.fetch('code')
   end
 
-  test "rejects revoked mobile device tokens" do
-    device, token = MobileDevice.issue!(name: "Luis Pixel")
+  test 'rejects revoked mobile device tokens' do
+    device, token = MobileDevice.issue!(name: 'Luis Pixel')
     device.revoke!
 
     get api_mobile_credentials_sync_url,
-      headers: { "Authorization" => "Bearer #{token}" },
-      as: :json
+        headers: { 'Authorization' => "Bearer #{token}" },
+        as: :json
 
     assert_response :unauthorized
-    assert_equal "invalid_mobile_device_token", response.parsed_body.fetch("code")
+    assert_equal 'invalid_mobile_device_token', response.parsed_body.fetch('code')
   end
 
-  test "rejects read sync without a vault signature" do
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+  test 'rejects read sync without a vault signature' do
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     register_vault_signing_key!
 
     get api_mobile_credentials_sync_url,
-      headers: { "Authorization" => "Bearer #{token}" },
-      as: :json
+        headers: { 'Authorization' => "Bearer #{token}" },
+        as: :json
 
     assert_response :unauthorized
-    assert_equal "invalid_mobile_sync_signature", response.parsed_body.fetch("code")
+    assert_equal 'invalid_mobile_sync_signature', response.parsed_body.fetch('code')
   end
 
-  test "creates credentials from mobile pending operations" do
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+  test 'creates credentials from mobile pending operations' do
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     params = {
       operations: [
         {
-          id: "operation_create",
-          type: "create",
-          localId: "credential_local",
+          id: 'operation_create',
+          type: 'create',
+          localId: 'credential_local',
           serverId: nil,
           credential: {
-            displayName: "Mobile item",
-            domain: "mobile.test",
-            category: "login",
+            displayName: 'Mobile item',
+            domain: 'mobile.test',
+            category: 'login',
             encryptedSecretPayload: ENCRYPTED_PAYLOAD
           }
         }
@@ -91,37 +95,37 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
 
     assert_broadcasts Credential.broadcast_stream_name, 1 do
       post api_mobile_credentials_sync_url,
-        params: params.to_json,
-        headers: mobile_sync_headers(
-          token,
-          params:,
-          method: "POST",
-          path: api_mobile_credentials_sync_path
-        )
+           params: params.to_json,
+           headers: mobile_sync_headers(
+             token,
+             params:,
+             method: 'POST',
+             path: api_mobile_credentials_sync_path
+           )
     end
 
     assert_response :success
-    operation = response.parsed_body.fetch("operations").first
-    credential = Credential.find_by!(domain: "mobile.test")
-    assert_equal "confirmed", operation.fetch("status")
-    assert_equal "credential_local", operation.fetch("localId")
-    assert_equal credential.id.to_s, operation.fetch("serverId")
-    assert_equal "Mobile item", credential.name
+    operation = response.parsed_body.fetch('operations').first
+    credential = Credential.find_by!(domain: 'mobile.test')
+    assert_equal 'confirmed', operation.fetch('status')
+    assert_equal 'credential_local', operation.fetch('localId')
+    assert_equal credential.id.to_s, operation.fetch('serverId')
+    assert_equal 'Mobile item', credential.name
     assert_equal ENCRYPTED_PAYLOAD, credential.encrypted_secret_payload
-    assert_includes response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }, credential.id.to_s
+    assert_includes response.parsed_body.fetch('credentials').map { |item| item.fetch('id') }, credential.id.to_s
   end
 
-  test "reuses credentials for retried mobile create operations" do
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+  test 'reuses credentials for retried mobile create operations' do
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     operation = {
-      id: "operation_create",
-      type: "create",
-      localId: "credential_local",
+      id: 'operation_create',
+      type: 'create',
+      localId: 'credential_local',
       serverId: nil,
       credential: {
-        displayName: "Mobile item",
-        domain: "mobile.test",
-        category: "login",
+        displayName: 'Mobile item',
+        domain: 'mobile.test',
+        category: 'login',
         encryptedSecretPayload: ENCRYPTED_PAYLOAD
       }
     }
@@ -130,43 +134,43 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
       params = { operations: [operation] }
 
       post api_mobile_credentials_sync_url,
-        params: params.to_json,
-        headers: mobile_sync_headers(
-          token,
-          params:,
-          method: "POST",
-          path: api_mobile_credentials_sync_path
-        )
+           params: params.to_json,
+           headers: mobile_sync_headers(
+             token,
+             params:,
+             method: 'POST',
+             path: api_mobile_credentials_sync_path
+           )
 
       assert_response :success
-      assert_equal "confirmed", response.parsed_body.fetch("operations").first.fetch("status")
+      assert_equal 'confirmed', response.parsed_body.fetch('operations').first.fetch('status')
     end
 
-    credentials = Credential.where(client_uid: "credential_local")
+    credentials = Credential.where(client_uid: 'credential_local')
     assert_equal 1, credentials.count
-    assert_equal 1, Credential.where(domain: "mobile.test").count
+    assert_equal 1, Credential.where(domain: 'mobile.test').count
   end
 
-  test "updates credentials from mobile pending operations" do
+  test 'updates credentials from mobile pending operations' do
     credential = Credential.create!(
-      name: "Old",
-      domain: "old.test",
-      category: "login",
+      name: 'Old',
+      domain: 'old.test',
+      category: 'login',
       encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     params = {
       operations: [
         {
-          id: "operation_update",
-          type: "update",
+          id: 'operation_update',
+          type: 'update',
           localId: credential.id.to_s,
           serverId: credential.id.to_s,
           baseUpdatedAt: credential.updated_at.iso8601,
           credential: {
-            displayName: "Updated",
-            domain: "updated.test",
-            category: "server",
+            displayName: 'Updated',
+            domain: 'updated.test',
+            category: 'server',
             encryptedSecretPayload: UPDATED_PAYLOAD
           }
         }
@@ -174,38 +178,38 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
     }
 
     post api_mobile_credentials_sync_url,
-      params: params.to_json,
-      headers: mobile_sync_headers(
-        token,
-        params:,
-        method: "POST",
-        path: api_mobile_credentials_sync_path
-      )
+         params: params.to_json,
+         headers: mobile_sync_headers(
+           token,
+           params:,
+           method: 'POST',
+           path: api_mobile_credentials_sync_path
+         )
 
     assert_response :success
-    operation = response.parsed_body.fetch("operations").first
+    operation = response.parsed_body.fetch('operations').first
     credential.reload
-    assert_equal "confirmed", operation.fetch("status")
-    assert_equal credential.id.to_s, operation.fetch("serverId")
-    assert_equal "Updated", credential.name
-    assert_equal "updated.test", credential.domain
-    assert_equal "server", credential.category
+    assert_equal 'confirmed', operation.fetch('status')
+    assert_equal credential.id.to_s, operation.fetch('serverId')
+    assert_equal 'Updated', credential.name
+    assert_equal 'updated.test', credential.domain
+    assert_equal 'server', credential.category
     assert_equal UPDATED_PAYLOAD, credential.encrypted_secret_payload
   end
 
-  test "deletes credentials from mobile pending operations" do
+  test 'deletes credentials from mobile pending operations' do
     credential = Credential.create!(
-      name: "Delete me",
-      domain: "delete.test",
-      category: "login",
+      name: 'Delete me',
+      domain: 'delete.test',
+      category: 'login',
       encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     params = {
       operations: [
         {
-          id: "operation_delete",
-          type: "delete",
+          id: 'operation_delete',
+          type: 'delete',
           localId: credential.id.to_s,
           serverId: credential.id.to_s,
           baseUpdatedAt: credential.updated_at.iso8601
@@ -214,41 +218,41 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
     }
 
     post api_mobile_credentials_sync_url,
-      params: params.to_json,
-      headers: mobile_sync_headers(
-        token,
-        params:,
-        method: "POST",
-        path: api_mobile_credentials_sync_path
-      )
+         params: params.to_json,
+         headers: mobile_sync_headers(
+           token,
+           params:,
+           method: 'POST',
+           path: api_mobile_credentials_sync_path
+         )
 
     assert_response :success
-    operation = response.parsed_body.fetch("operations").first
-    assert_equal "confirmed", operation.fetch("status")
+    operation = response.parsed_body.fetch('operations').first
+    assert_equal 'confirmed', operation.fetch('status')
     assert_nil Credential.find_by(id: credential.id)
-    assert_not_includes response.parsed_body.fetch("credentials").map { |item| item.fetch("id") }, credential.id.to_s
+    assert_not_includes response.parsed_body.fetch('credentials').map { |item| item.fetch('id') }, credential.id.to_s
   end
 
-  test "returns conflicts for stale mobile updates" do
+  test 'returns conflicts for stale mobile updates' do
     credential = Credential.create!(
-      name: "Server value",
-      domain: "server.test",
-      category: "login",
+      name: 'Server value',
+      domain: 'server.test',
+      category: 'login',
       encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     params = {
       operations: [
         {
-          id: "operation_update",
-          type: "update",
+          id: 'operation_update',
+          type: 'update',
           localId: credential.id.to_s,
           serverId: credential.id.to_s,
           baseUpdatedAt: 1.day.ago.iso8601,
           credential: {
-            displayName: "Stale mobile value",
-            domain: "mobile.test",
-            category: "login",
+            displayName: 'Stale mobile value',
+            domain: 'mobile.test',
+            category: 'login',
             encryptedSecretPayload: UPDATED_PAYLOAD
           }
         }
@@ -256,87 +260,87 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
     }
 
     post api_mobile_credentials_sync_url,
-      params: params.to_json,
-      headers: mobile_sync_headers(
-        token,
-        params:,
-        method: "POST",
-        path: api_mobile_credentials_sync_path
-      )
+         params: params.to_json,
+         headers: mobile_sync_headers(
+           token,
+           params:,
+           method: 'POST',
+           path: api_mobile_credentials_sync_path
+         )
 
     assert_response :success
-    operation = response.parsed_body.fetch("operations").first
-    assert_equal "conflict", operation.fetch("status")
-    assert_equal "Server value", credential.reload.name
+    operation = response.parsed_body.fetch('operations').first
+    assert_equal 'conflict', operation.fetch('status')
+    assert_equal 'Server value', credential.reload.name
     assert_equal ENCRYPTED_PAYLOAD, credential.encrypted_secret_payload
   end
 
-  test "rejects mobile write sync without a vault signature" do
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+  test 'rejects mobile write sync without a vault signature' do
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     register_vault_signing_key!
 
     post api_mobile_credentials_sync_url,
-      params: { operations: [] },
-      headers: { "Authorization" => "Bearer #{token}" },
-      as: :json
+         params: { operations: [] },
+         headers: { 'Authorization' => "Bearer #{token}" },
+         as: :json
 
     assert_response :unauthorized
-    assert_equal "invalid_mobile_sync_signature", response.parsed_body.fetch("code")
+    assert_equal 'invalid_mobile_sync_signature', response.parsed_body.fetch('code')
   end
 
-  test "rejects mobile write sync when the signed body is changed" do
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+  test 'rejects mobile write sync when the signed body is changed' do
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     signed_params = { operations: [] }
     tampered_params = {
       operations: [
         {
-          id: "operation_create",
-          type: "create",
-          localId: "credential_local",
+          id: 'operation_create',
+          type: 'create',
+          localId: 'credential_local',
           serverId: nil,
           credential: {
-            displayName: "Tampered",
-            domain: "tampered.test",
-            category: "login",
+            displayName: 'Tampered',
+            domain: 'tampered.test',
+            category: 'login',
             encryptedSecretPayload: ENCRYPTED_PAYLOAD
           }
         }
       ]
     }
 
-    assert_no_difference("Credential.count") do
+    assert_no_difference('Credential.count') do
       post api_mobile_credentials_sync_url,
-        params: tampered_params.to_json,
-        headers: mobile_sync_headers(
-          token,
-          params: signed_params,
-          method: "POST",
-          path: api_mobile_credentials_sync_path
-        )
+           params: tampered_params.to_json,
+           headers: mobile_sync_headers(
+             token,
+             params: signed_params,
+             method: 'POST',
+             path: api_mobile_credentials_sync_path
+           )
     end
 
     assert_response :unauthorized
-    assert_equal "invalid_mobile_sync_signature", response.parsed_body.fetch("code")
+    assert_equal 'invalid_mobile_sync_signature', response.parsed_body.fetch('code')
   end
 
-  test "rejects mobile write sync with a mismatched signing key" do
-    _device, token = MobileDevice.issue!(name: "Luis Pixel")
+  test 'rejects mobile write sync with a mismatched signing key' do
+    _device, token = MobileDevice.issue!(name: 'Luis Pixel')
     register_vault_signing_key!
-    other_key = OpenSSL::PKey::EC.generate("prime256v1")
+    other_key = OpenSSL::PKey::EC.generate('prime256v1')
     params = { operations: [] }
 
     post api_mobile_credentials_sync_url,
-      params: params.to_json,
-      headers: mobile_sync_headers(
-        token,
-        params:,
-        method: "POST",
-        path: api_mobile_credentials_sync_path,
-        signing_key: other_key
-      )
+         params: params.to_json,
+         headers: mobile_sync_headers(
+           token,
+           params:,
+           method: 'POST',
+           path: api_mobile_credentials_sync_path,
+           signing_key: other_key
+         )
 
     assert_response :unauthorized
-    assert_equal "invalid_mobile_sync_signature", response.parsed_body.fetch("code")
+    assert_equal 'invalid_mobile_sync_signature', response.parsed_body.fetch('code')
   end
 
   private
@@ -350,23 +354,23 @@ class Api::Mobile::CredentialsControllerTest < ActionDispatch::IntegrationTest
   def mobile_sync_headers(token, method:, path:, params: nil, signing_key: SIGNING_KEY)
     register_vault_signing_key!
 
-    serialized_body = params&.to_json.to_s
+    serialized_body = params&.to_json
     challenge =
       "#{Api::Mobile::CredentialsController::MOBILE_SYNC_SIGNATURE_PREFIX}#{method}:#{path}:#{serialized_body}"
 
     {
-      "Authorization" => "Bearer #{token}",
-      "Content-Type" => "application/json",
-      "X-Mobile-Sync-Signature" => Base64.strict_encode64(
-        signing_key.sign(OpenSSL::Digest::SHA256.new, challenge)
+      'Authorization' => "Bearer #{token}",
+      'Content-Type' => 'application/json',
+      'X-Mobile-Sync-Signature' => Base64.strict_encode64(
+        signing_key.sign(OpenSSL::Digest.new('SHA256'), challenge)
       ),
-      "X-Mobile-Sync-Signing-Key" => Base64.strict_encode64(signing_key.public_to_der)
+      'X-Mobile-Sync-Signing-Key' => Base64.strict_encode64(signing_key.public_to_der)
     }
   end
 
   def assert_no_plaintext_secret_keys(payload)
-    assert_not payload.key?("username")
-    assert_not payload.key?("password")
-    assert_not payload.key?("notes")
+    assert_not payload.key?('username')
+    assert_not payload.key?('password')
+    assert_not payload.key?('notes')
   end
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class VaultSigningKey < ApplicationRecord
   validates :public_key_spki, presence: true
 

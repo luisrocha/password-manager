@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module OperationalSecurityWarnings
   SECRET_PLACEHOLDERS = {
-    "SECRET_KEY_BASE" => ["replace-with-a-generated-secret"],
+    'SECRET_KEY_BASE' => ['replace-with-a-generated-secret'],
     VaultSetupToken::ENV_KEY => VaultSetupToken::PLACEHOLDER_VALUES,
-    BrowserApiToken::HASHES_ENV_KEY => ["replace-with-token-sha256-hash"]
+    BrowserApiToken::HASHES_ENV_KEY => ['replace-with-token-sha256-hash']
   }.freeze
 
   module_function

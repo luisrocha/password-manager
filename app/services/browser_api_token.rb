@@ -1,7 +1,9 @@
-require "openssl"
+# frozen_string_literal: true
+
+require 'openssl'
 
 module BrowserApiToken
-  HASHES_ENV_KEY = "PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES".freeze
+  HASHES_ENV_KEY = 'PASSWORD_MANAGER_API_TOKEN_SHA256_HASHES'
 
   module_function
 
@@ -19,10 +21,10 @@ module BrowserApiToken
   end
 
   def configured_hashes
-    ENV.fetch(HASHES_ENV_KEY, "")
-      .split(",")
-      .map { |hash| hash.strip.downcase }
-      .select { |hash| hash.match?(/\A[0-9a-f]{64}\z/) }
+    ENV.fetch(HASHES_ENV_KEY, '')
+       .split(',')
+       .map { |hash| hash.strip.downcase }
+       .grep(/\A[0-9a-f]{64}\z/)
   end
 
   def secure_compare(provided_value, expected_value)

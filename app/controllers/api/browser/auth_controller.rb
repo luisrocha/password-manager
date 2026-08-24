@@ -1,14 +1,16 @@
+# frozen_string_literal: true
+
 class Api::Browser::AuthController < ActionController::API
   include RateLimitResponse
 
-  API_UNLOCK_THROTTLE_LIMIT = ENV.fetch("PASSWORD_MANAGER_API_UNLOCK_THROTTLE_LIMIT", 30).to_i
+  API_UNLOCK_THROTTLE_LIMIT = ENV.fetch('PASSWORD_MANAGER_API_UNLOCK_THROTTLE_LIMIT', 30).to_i
   TOTP_CHALLENGE_TTL = 5.minutes
 
   rate_limit to: API_UNLOCK_THROTTLE_LIMIT,
-    within: 1.minute,
-    only: :unlock,
-    with: :render_rate_limit_response,
-    name: "browser_api_unlock"
+             within: 1.minute,
+             only: :unlock,
+             with: :render_rate_limit_response,
+             name: 'browser_api_unlock'
   before_action :authenticate_static_api_token!
 
   def unlock
@@ -23,7 +25,7 @@ class Api::Browser::AuthController < ActionController::API
     end
 
     unless valid_unlock_proof?
-      render json: { error: "Invalid unlock proof", code: "invalid_unlock_proof" }, status: :unauthorized
+      render json: { error: 'Invalid unlock proof', code: 'invalid_unlock_proof' }, status: :unauthorized
       return
     end
 
@@ -39,12 +41,12 @@ class Api::Browser::AuthController < ActionController::API
 
   def verify_totp_challenge
     unless verified_totp_challenge.present?
-      render json: { error: "Invalid two-factor challenge", code: "invalid_totp_challenge" }, status: :unauthorized
+      render json: { error: 'Invalid two-factor challenge', code: 'invalid_totp_challenge' }, status: :unauthorized
       return
     end
 
     unless valid_second_factor_code?
-      render json: { error: "Invalid two-factor code", code: "invalid_totp_code" }, status: :unauthorized
+      render json: { error: 'Invalid two-factor code', code: 'invalid_totp_code' }, status: :unauthorized
       return
     end
 
@@ -57,7 +59,7 @@ class Api::Browser::AuthController < ActionController::API
     response_body = {
       token: issued_token[:token],
       expiresAt: issued_token[:expires_at].iso8601,
-      tokenType: "Bearer"
+      tokenType: 'Bearer'
     }
     response_body[:totpRememberedClientToken] = remembered_client_token if remembered_client_token.present?
 
@@ -96,7 +98,8 @@ class Api::Browser::AuthController < ActionController::API
 
     render json: {
       requiresTotp: true,
-      totpChallengeId: totp_challenge_verifier.generate(challenge, expires_in: TOTP_CHALLENGE_TTL, purpose: :browser_api_totp),
+      totpChallengeId: totp_challenge_verifier.generate(challenge, expires_in: TOTP_CHALLENGE_TTL,
+                                                                   purpose: :browser_api_totp),
       expiresAt: TOTP_CHALLENGE_TTL.from_now.iso8601
     }, status: :accepted
   end
@@ -146,7 +149,8 @@ class Api::Browser::AuthController < ActionController::API
   end
 
   def remember_client?
-    ActiveModel::Type::Boolean.new.cast(unlock_params[:remember_client].presence || unlock_params[:rememberClient].presence)
+    remember_client = unlock_params[:remember_client].presence || unlock_params[:rememberClient].presence
+    ActiveModel::Type::Boolean.new.cast(remember_client)
   end
 
   def totp_remembered_client_token
@@ -162,13 +166,13 @@ class Api::Browser::AuthController < ActionController::API
   end
 
   def authenticate_static_api_token!
-    unless BrowserApiToken.valid?(bearer_token)
-      render json: { error: "Unauthorized", code: "invalid_api_token" }, status: :unauthorized
-    end
+    return if BrowserApiToken.valid?(bearer_token)
+
+    render json: { error: 'Unauthorized', code: 'invalid_api_token' }, status: :unauthorized
   end
 
   def bearer_token
-    authorization = request.headers["Authorization"].to_s
+    authorization = request.headers['Authorization'].to_s
     match = authorization.match(/\ABearer (?<token>.+)\z/)
     match && match[:token]
   end

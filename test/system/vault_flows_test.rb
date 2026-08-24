@@ -1,23 +1,25 @@
-require "application_system_test_case"
+# frozen_string_literal: true
+
+require 'application_system_test_case'
 
 class VaultFlowsTest < ApplicationSystemTestCase
-  MASTER_PASSWORD = "correct horse battery staple"
-  SETUP_TOKEN = "system-test-setup-token"
+  MASTER_PASSWORD = 'correct horse battery staple'
+  SETUP_TOKEN = 'system-test-setup-token'
 
   setup do
-    @original_setup_token = ENV["PASSWORD_MANAGER_SETUP_TOKEN"]
-    ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = SETUP_TOKEN
+    @original_setup_token = ENV.fetch('PASSWORD_MANAGER_SETUP_TOKEN', nil)
+    ENV['PASSWORD_MANAGER_SETUP_TOKEN'] = SETUP_TOKEN
   end
 
   teardown do
     if @original_setup_token.nil?
-      ENV.delete("PASSWORD_MANAGER_SETUP_TOKEN")
+      ENV.delete('PASSWORD_MANAGER_SETUP_TOKEN')
     else
-      ENV["PASSWORD_MANAGER_SETUP_TOKEN"] = @original_setup_token
+      ENV['PASSWORD_MANAGER_SETUP_TOKEN'] = @original_setup_token
     end
   end
 
-  test "main vault flows" do
+  test 'main vault flows' do
     backup_path = create_new_vault_key
 
     added = add_credential
@@ -35,34 +37,36 @@ class VaultFlowsTest < ApplicationSystemTestCase
     FileUtils.rm_f(backup_path) if backup_path
   end
 
-  test "setup without configured setup token does not create local key" do
-    ENV.delete("PASSWORD_MANAGER_SETUP_TOKEN")
+  test 'setup without configured setup token does not create local key' do
+    ENV.delete('PASSWORD_MANAGER_SETUP_TOKEN')
 
     visit unlock_path
 
-    assert_text "Setup token is not configured."
-    fill_in "New master password", with: MASTER_PASSWORD
-    fill_in "Confirm master password", with: MASTER_PASSWORD
-    fill_in "Setup token", with: "wrong-token"
-    click_button "Create Vault Key"
+    assert_text 'Setup token is not configured.'
+    fill_in 'New master password', with: MASTER_PASSWORD
+    fill_in 'Confirm master password', with: MASTER_PASSWORD
+    fill_in 'Setup token', with: 'wrong-token'
+    click_button 'Create Vault Key'
 
-    assert_text "Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key."
-    assert_selector "[data-unlock-target='status']", text: "Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key.", count: 1
+    assert_text 'Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key.'
+    setup_token_error =
+      'Setup token is not configured. Set PASSWORD_MANAGER_SETUP_TOKEN before creating the first vault key.'
+    assert_selector "[data-unlock-target='status']", text: setup_token_error, count: 1
     assert_nil page.evaluate_script("window.localStorage.getItem('passwordManager.encryptedPrivateKey')")
-    assert_no_text "Vault key created."
+    assert_no_text 'Vault key created.'
   end
 
-  test "setup with wrong setup token does not create local key" do
+  test 'setup with wrong setup token does not create local key' do
     visit unlock_path
 
-    fill_in "New master password", with: MASTER_PASSWORD
-    fill_in "Confirm master password", with: MASTER_PASSWORD
-    fill_in "Setup token", with: "wrong-token"
-    click_button "Create Vault Key"
+    fill_in 'New master password', with: MASTER_PASSWORD
+    fill_in 'Confirm master password', with: MASTER_PASSWORD
+    fill_in 'Setup token', with: 'wrong-token'
+    click_button 'Create Vault Key'
 
-    assert_text "Setup token is invalid."
+    assert_text 'Setup token is invalid.'
     assert_nil page.evaluate_script("window.localStorage.getItem('passwordManager.encryptedPrivateKey')")
-    assert_no_text "Vault key created."
+    assert_no_text 'Vault key created.'
   end
 
   private
@@ -70,27 +74,27 @@ class VaultFlowsTest < ApplicationSystemTestCase
   def create_new_vault_key
     visit unlock_path
 
-    assert_text "Password Manager"
-    assert_text "Create a local vault key and enter the setup token for this server."
+    assert_text 'Password Manager'
+    assert_text 'Create a local vault key and enter the setup token for this server.'
 
-    fill_in "New master password", with: MASTER_PASSWORD
-    fill_in "Confirm master password", with: MASTER_PASSWORD
-    fill_in "Setup token", with: SETUP_TOKEN
-    click_button "Create Vault Key"
+    fill_in 'New master password', with: MASTER_PASSWORD
+    fill_in 'Confirm master password', with: MASTER_PASSWORD
+    fill_in 'Setup token', with: SETUP_TOKEN
+    click_button 'Create Vault Key'
 
-    assert_text "Vault key created."
-    assert_selector "a[download='password-manager-vault-backup.json']", text: "Download Backup"
-    assert_match(/\Ablob:/, find("a", text: "Download Backup")["href"])
+    assert_text 'Vault key created.'
+    assert_selector "a[download='password-manager-vault-backup.json']", text: 'Download Backup'
+    assert_match(/\Ablob:/, find('a', text: 'Download Backup')['href'])
 
     backup_json = page.evaluate_script("window.localStorage.getItem('passwordManager.encryptedPrivateKey')")
-    assert backup_json.present?, "Expected vault backup data in browser storage"
-    assert_equal "Argon2id", JSON.parse(backup_json).dig("kdf", "name")
+    assert backup_json.present?, 'Expected vault backup data in browser storage'
+    assert_equal 'Argon2id', JSON.parse(backup_json).dig('kdf', 'name')
 
-    backup_path = Rails.root.join("tmp", "system-vault-backup-#{SecureRandom.hex(8)}.json")
+    backup_path = Rails.root.join('tmp', "system-vault-backup-#{SecureRandom.hex(8)}.json")
     File.write(backup_path, backup_json)
 
-    click_button "Continue to Vault"
-    assert_text "Vault unlocked."
+    click_button 'Continue to Vault'
+    assert_text 'Vault unlocked.'
     assert_credentials_index
     assert_backup_matches_registered_key(backup_json)
 
@@ -101,20 +105,20 @@ class VaultFlowsTest < ApplicationSystemTestCase
     credential = build(:credential)
     username = FFaker::Internet.user_name
     password = FFaker::Internet.password
-    notes = "Created from a system test"
+    notes = 'Created from a system test'
 
-    click_link "Add Item"
-    assert_text "Add Credential"
+    click_link 'Add Item'
+    assert_text 'Add Credential'
 
-    fill_in "Name", with: credential.name
-    fill_in "Domain", with: credential.domain
-    fill_in "Username", with: username
-    fill_in "Password", with: password
-    fill_in "Notes", with: notes
-    click_button "Save"
+    fill_in 'Name', with: credential.name
+    fill_in 'Domain', with: credential.domain
+    fill_in 'Username', with: username
+    fill_in 'Password', with: password
+    fill_in 'Notes', with: notes
+    click_button 'Save'
 
     assert_credentials_index
-    assert_text "Credential saved."
+    assert_text 'Credential saved.'
     assert_text credential.name
     assert_text credential.domain
     assert_text username
@@ -129,36 +133,36 @@ class VaultFlowsTest < ApplicationSystemTestCase
       edited_domain: "updated-#{credential.domain}",
       edited_username: "updated-#{username}",
       edited_password: "updated-#{password}",
-      edited_notes: "Updated from a system test"
+      edited_notes: 'Updated from a system test'
     }
   end
 
   def import_csv
-    click_link "Import CSV"
-    assert_text "Import 1Password CSV"
+    click_link 'Import CSV'
+    assert_text 'Import 1Password CSV'
 
-    attach_file "file", Rails.root.join("test/fixtures/files/1password.csv")
-    click_button "Import"
+    attach_file 'file', Rails.root.join('test/fixtures/files/1password.csv')
+    click_button 'Import'
 
     assert_credentials_index
-    assert_text "Imported 2 credentials."
-    assert_text "GitHub"
-    assert_text "github.com"
-    assert_text "luis"
-    assert_text "Server SSH"
+    assert_text 'Imported 2 credentials.'
+    assert_text 'GitHub'
+    assert_text 'github.com'
+    assert_text 'luis'
+    assert_text 'Server SSH'
   end
 
   def search_credentials(name)
-    fill_in "Search by name or domain", with: name
-    click_button "Search"
+    fill_in 'Search by name or domain', with: name
+    click_button 'Search'
 
     assert_credentials_index(q: name)
     assert_text name
-    assert_no_text "Server SSH"
+    assert_no_text 'Server SSH'
 
-    click_link "Clear search"
+    click_link 'Clear search'
     assert_credentials_index
-    assert_text "Server SSH"
+    assert_text 'Server SSH'
   end
 
   def edit_credential(credential)
@@ -166,20 +170,20 @@ class VaultFlowsTest < ApplicationSystemTestCase
       find("[aria-label='Edit credential']").click
     end
 
-    assert_text "Edit Credential"
-    assert_field "Username", with: credential[:username]
-    assert_field "Password", with: credential[:password]
-    assert_field "Notes", with: credential[:notes]
+    assert_text 'Edit Credential'
+    assert_field 'Username', with: credential[:username]
+    assert_field 'Password', with: credential[:password]
+    assert_field 'Notes', with: credential[:notes]
 
-    fill_in "Name", with: credential[:edited_name]
-    fill_in "Domain", with: credential[:edited_domain]
-    fill_in "Username", with: credential[:edited_username]
-    fill_in "Password", with: credential[:edited_password]
-    fill_in "Notes", with: credential[:edited_notes]
-    click_button "Update"
+    fill_in 'Name', with: credential[:edited_name]
+    fill_in 'Domain', with: credential[:edited_domain]
+    fill_in 'Username', with: credential[:edited_username]
+    fill_in 'Password', with: credential[:edited_password]
+    fill_in 'Notes', with: credential[:edited_notes]
+    click_button 'Update'
 
     assert_credentials_index
-    assert_text "Credential updated."
+    assert_text 'Credential updated.'
     assert_text credential[:edited_name]
     assert_text credential[:edited_domain]
     assert_text credential[:edited_username]
@@ -187,28 +191,28 @@ class VaultFlowsTest < ApplicationSystemTestCase
 
   def delete_credential(name)
     within_desktop_row(name) do
-      accept_confirm "Delete this credential?" do
+      accept_confirm 'Delete this credential?' do
         find("[aria-label='Delete credential']").click
       end
     end
 
     assert_credentials_index
-    assert_text "Credential deleted."
+    assert_text 'Credential deleted.'
     assert_no_text name
   end
 
   def lock_vault
-    click_button "Lock Vault"
+    click_button 'Lock Vault'
 
-    assert_text "Vault locked."
-    assert_text "Enter your master password to unlock the vault."
+    assert_text 'Vault locked.'
+    assert_text 'Enter your master password to unlock the vault.'
   end
 
   def unlock_existing_key
-    fill_in "Master password", with: MASTER_PASSWORD
-    click_button "Unlock"
+    fill_in 'Master password', with: MASTER_PASSWORD
+    click_button 'Unlock'
 
-    assert_text "Vault unlocked."
+    assert_text 'Vault unlocked.'
     assert_credentials_index
   end
 
@@ -216,16 +220,16 @@ class VaultFlowsTest < ApplicationSystemTestCase
     page.execute_script("window.localStorage.removeItem('passwordManager.encryptedPrivateKey')")
     visit unlock_path
 
-    assert_text "Vault key not found on this browser. Import your vault key backup to continue."
-    attach_file "vault_backup_file", backup_path
+    assert_text 'Vault key not found on this browser. Import your vault key backup to continue.'
+    attach_file 'vault_backup_file', backup_path
     assert_attached_backup_can_be_verified
-    click_button "Import Backup"
+    click_button 'Import Backup'
 
-    assert_text "Backup imported. Enter your master password to unlock."
-    fill_in "Master password", with: MASTER_PASSWORD
-    click_button "Unlock"
+    assert_text 'Backup imported. Enter your master password to unlock.'
+    fill_in 'Master password', with: MASTER_PASSWORD
+    click_button 'Unlock'
 
-    assert_text "Vault unlocked."
+    assert_text 'Vault unlocked.'
     assert_credentials_index
   end
 
@@ -264,26 +268,26 @@ class VaultFlowsTest < ApplicationSystemTestCase
       })
     JS
 
-    assert_equal 200, result, "Expected the attached backup file to pass server key verification"
+    assert_equal 200, result, 'Expected the attached backup file to pass server key verification'
   end
 
   def assert_backup_matches_registered_key(backup_json)
-    backup_key = JSON.parse(backup_json).dig("signing", "publicKeySpki")
+    backup_key = JSON.parse(backup_json).dig('signing', 'publicKeySpki')
     registered_key = VaultSigningKey.current&.public_key_spki
 
-    assert backup_key.present?, "Expected backup to include a signing public key"
-    assert registered_key.present?, "Expected continuing to the vault to register a signing public key"
-    assert backup_key == registered_key, "Expected the backup signing key to match the registered signing key"
+    assert backup_key.present?, 'Expected backup to include a signing public key'
+    assert registered_key.present?, 'Expected continuing to the vault to register a signing public key'
+    assert backup_key == registered_key, 'Expected the backup signing key to match the registered signing key'
   end
 
-  def within_desktop_row(text, &block)
-    within("table tbody tr", text:, &block)
+  def within_desktop_row(text, &)
+    within('table tbody tr', text:, &)
   end
 
-  def assert_credentials_index(q: nil)
-    expected_path = q.present? ? credentials_path(q:) : credentials_path
+  def assert_credentials_index(query: nil)
+    expected_path = query.present? ? credentials_path(q: query) : credentials_path
 
     assert_current_path expected_path
-    assert_selector "h2", text: /\AStored Items \(\d+\)\z/
+    assert_selector 'h2', text: /\AStored Items \(\d+\)\z/
   end
 end

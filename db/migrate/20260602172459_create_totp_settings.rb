@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateTotpSettings < ActiveRecord::Migration[8.1]
   def change
     create_table :totp_settings do |t|

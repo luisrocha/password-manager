@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ApplicationController < ActionController::Base
   DEFAULT_VAULT_SESSION_TTL_MINUTES = 30
 
@@ -9,7 +11,7 @@ class ApplicationController < ActionController::Base
   helper_method :extension_handoff_id, :vault_unlocked?
 
   def self.vault_session_ttl
-    minutes = ENV.fetch("PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES", DEFAULT_VAULT_SESSION_TTL_MINUTES).to_i
+    minutes = ENV.fetch('PASSWORD_MANAGER_VAULT_SESSION_TTL_MINUTES', DEFAULT_VAULT_SESSION_TTL_MINUTES).to_i
     minutes = DEFAULT_VAULT_SESSION_TTL_MINUTES if minutes <= 0
 
     minutes.minutes
@@ -51,8 +53,8 @@ class ApplicationController < ActionController::Base
   def prevent_authenticated_page_cache
     return unless vault_unlocked?
 
-    response.headers["Cache-Control"] = "no-store"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
   end
 end

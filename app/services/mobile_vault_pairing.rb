@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 class MobileVaultPairing
-  CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789".freeze
+  CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
   CODE_LENGTH = 8
   EXPIRES_IN = 5.minutes
-  CACHE_KEY_PREFIX = "mobile_vault_pairing"
+  CACHE_KEY_PREFIX = 'mobile_vault_pairing'
 
   class CodeCollisionError < StandardError; end
 
@@ -32,11 +34,11 @@ class MobileVaultPairing
   end
 
   def self.normalize_code(code)
-    code.to_s.upcase.gsub(/[^A-Z0-9]/, "")
+    code.to_s.upcase.gsub(/[^A-Z0-9]/, '')
   end
 
   def self.display_code(code)
-    normalize_code(code).scan(/.{1,4}/).join("-")
+    normalize_code(code).scan(/.{1,4}/).join('-')
   end
 
   def self.generate_available_code
@@ -45,7 +47,7 @@ class MobileVaultPairing
       return code unless Rails.cache.exist?(cache_key(code))
     end
 
-    raise CodeCollisionError, "Could not create a unique mobile pairing code"
+    raise CodeCollisionError, 'Could not create a unique mobile pairing code'
   end
 
   private_class_method :generate_available_code

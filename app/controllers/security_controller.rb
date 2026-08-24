@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class SecurityController < ApplicationController
   def index
     @totp_setting = TotpSetting.current

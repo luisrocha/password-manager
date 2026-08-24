@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class TotpRememberedClient < ApplicationRecord
   TOKEN_BYTES = 32
   TTL = 24.hours
@@ -5,7 +7,7 @@ class TotpRememberedClient < ApplicationRecord
   validates :token_digest, presence: true, uniqueness: true
   validates :expires_at, presence: true
 
-  scope :active, -> { where(revoked_at: nil).where("expires_at > ?", Time.current) }
+  scope :active, -> { where(revoked_at: nil).where('expires_at > ?', Time.current) }
 
   def self.issue!
     token = SecureRandom.urlsafe_base64(TOKEN_BYTES)

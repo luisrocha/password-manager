@@ -1,10 +1,12 @@
-pin "application"
-pin "vault_crypto"
-pin "credential_importer"
-pin "argon2_bridge"
-pin "password_manager_vault_crypto", to: "password_manager_vault_crypto.js"
-pin "openpgp", to: "openpgp.min.js"
-pin "@hotwired/stimulus", to: "stimulus.min.js"
-pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
-pin_all_from "app/javascript/controllers", under: "controllers"
-pin "@hotwired/turbo-rails", to: "turbo.min.js"
+# frozen_string_literal: true
+
+pin 'application'
+pin 'vault_crypto'
+pin 'credential_importer'
+pin 'argon2_bridge'
+pin 'password_manager_vault_crypto', to: 'password_manager_vault_crypto.js'
+pin 'openpgp', to: 'openpgp.min.js'
+pin '@hotwired/stimulus', to: 'stimulus.min.js'
+pin '@hotwired/stimulus-loading', to: 'stimulus-loading.js'
+pin_all_from 'app/javascript/controllers', under: 'controllers'
+pin '@hotwired/turbo-rails', to: 'turbo.min.js'

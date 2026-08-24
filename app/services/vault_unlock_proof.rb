@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class VaultUnlockProof
   def self.valid?(challenge:, signature:, public_key_spki:)
     new(challenge:, signature:, public_key_spki:).valid?
@@ -13,7 +15,7 @@ class VaultUnlockProof
     return false if challenge.blank? || signature.blank? || public_key_spki.blank?
 
     public_key.verify(
-      OpenSSL::Digest::SHA256.new,
+      OpenSSL::Digest.new('SHA256'),
       normalized_signature,
       challenge
     )
@@ -34,8 +36,8 @@ class VaultUnlockProof
     return decoded_signature unless decoded_signature.bytesize == 64
 
     OpenSSL::ASN1::Sequence([
-      OpenSSL::ASN1::Integer.new(OpenSSL::BN.new(decoded_signature.byteslice(0, 32), 2)),
-      OpenSSL::ASN1::Integer.new(OpenSSL::BN.new(decoded_signature.byteslice(32, 32), 2))
-    ]).to_der
+                              OpenSSL::ASN1::Integer.new(OpenSSL::BN.new(decoded_signature.byteslice(0, 32), 2)),
+                              OpenSSL::ASN1::Integer.new(OpenSSL::BN.new(decoded_signature.byteslice(32, 32), 2))
+                            ]).to_der
   end
 end

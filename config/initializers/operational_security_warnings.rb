@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 if Rails.env.production?
   Rails.application.config.after_initialize do
     OperationalSecurityWarnings.messages.each do |message|

@@ -1,0 +1,45 @@
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - db/schema.rb
+
+Metrics/AbcSize:
+  Max: 35
+  Exclude:
+    - test/**/*
+
+Metrics/BlockLength:
+  Exclude:
+    - config/routes.rb
+    - test/**/*
+
+Metrics/ClassLength:
+  Max: 160
+  Exclude:
+    - test/**/*
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/MethodLength:
+  Max: 30
+  Exclude:
+    - test/**/*
+
+Metrics/PerceivedComplexity:
+  Max: 10
+
+Naming/FileName:
+  Exclude:
+    - Archspec.rb
+
+Naming/PredicateMethod:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false

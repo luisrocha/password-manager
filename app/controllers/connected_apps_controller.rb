@@ -1,4 +1,25 @@
+# frozen_string_literal: true
+
 class ConnectedAppsController < ApplicationController
+  COMPACT_MOBILE_VAULT_SCHEMA = {
+    'v' => 1,
+    'd' => {
+      'p' => String,
+      'e' => String,
+      's' => { 'p' => String, 'e' => String, 'i' => String },
+      'k' => { 'v' => Numeric, 't' => Numeric, 'm' => Numeric, 'p' => Numeric, 'h' => Numeric, 's' => String },
+      'c' => { 'i' => String }
+    }
+  }.freeze
+  VAULT_BACKUP_SCHEMA = {
+    'version' => 1,
+    'publicKey' => String,
+    'encryptedPrivateKey' => String,
+    'signing' => { 'publicKeySpki' => String, 'encryptedPrivateKey' => String, 'iv' => String },
+    'kdf' => { 'salt' => String },
+    'encryption' => { 'iv' => String }
+  }.freeze
+
   before_action :prevent_cached_access
 
   def index
@@ -11,13 +32,13 @@ class ConnectedAppsController < ApplicationController
 
     render json: MobileVaultPairing.create!(encrypted_vault_backup)
   rescue ActionController::ParameterMissing, JSON::ParserError, InvalidMobileVaultPayloadError
-    render json: { error: "Invalid encrypted vault backup." }, status: :unprocessable_entity
+    render json: { error: 'Invalid encrypted vault backup.' }, status: :unprocessable_entity
   end
 
   def revoke_mobile_device
     MobileDevice.find(params[:id]).revoke!
 
-    redirect_to connected_apps_path, notice: "Mobile app access revoked.", status: :see_other
+    redirect_to connected_apps_path, notice: 'Mobile app access revoked.', status: :see_other
   end
 
   def destroy_mobile_device
@@ -25,17 +46,17 @@ class ConnectedAppsController < ApplicationController
 
     if device.revoked_at.present?
       device.destroy!
-      redirect_to connected_apps_path, notice: "Revoked mobile app entry deleted.", status: :see_other
+      redirect_to connected_apps_path, notice: 'Revoked mobile app entry deleted.', status: :see_other
     else
-      redirect_to connected_apps_path, alert: "Revoke mobile app access before deleting it.", status: :see_other
+      redirect_to connected_apps_path, alert: 'Revoke mobile app access before deleting it.', status: :see_other
     end
   end
 
   private
 
   def prevent_cached_access
-    response.headers["Cache-Control"] = "no-store"
-    response.headers["Pragma"] = "no-cache"
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Pragma'] = 'no-cache'
   end
 
   class InvalidMobileVaultPayloadError < StandardError; end
@@ -43,7 +64,7 @@ class ConnectedAppsController < ApplicationController
   def validate_encrypted_vault_backup!(serialized_backup)
     payload = JSON.parse(serialized_backup)
 
-    if payload.is_a?(Hash) && payload["t"] == "pmv"
+    if payload.is_a?(Hash) && payload['t'] == 'pmv'
       validate_compact_mobile_vault_payload!(payload)
     else
       validate_vault_backup_payload!(payload)
@@ -51,50 +72,26 @@ class ConnectedAppsController < ApplicationController
   end
 
   def validate_compact_mobile_vault_payload!(payload)
-    data = payload["d"]
-    signing = data.is_a?(Hash) ? data["s"] : nil
-    kdf = data.is_a?(Hash) ? data["k"] : nil
-    encryption = data.is_a?(Hash) ? data["c"] : nil
-
-    return if payload["v"] == 1 &&
-      data.is_a?(Hash) &&
-      data["p"].is_a?(String) &&
-      data["e"].is_a?(String) &&
-      signing.is_a?(Hash) &&
-      signing["p"].is_a?(String) &&
-      signing["e"].is_a?(String) &&
-      signing["i"].is_a?(String) &&
-      kdf.is_a?(Hash) &&
-      kdf["v"].is_a?(Numeric) &&
-      kdf["t"].is_a?(Numeric) &&
-      kdf["m"].is_a?(Numeric) &&
-      kdf["p"].is_a?(Numeric) &&
-      kdf["h"].is_a?(Numeric) &&
-      kdf["s"].is_a?(String) &&
-      encryption.is_a?(Hash) &&
-      encryption["i"].is_a?(String)
-
-    raise InvalidMobileVaultPayloadError
+    raise InvalidMobileVaultPayloadError unless payload_matches_schema?(payload, COMPACT_MOBILE_VAULT_SCHEMA)
   end
 
   def validate_vault_backup_payload!(payload)
-    signing = payload.is_a?(Hash) ? payload["signing"] : nil
-    kdf = payload.is_a?(Hash) ? payload["kdf"] : nil
-    encryption = payload.is_a?(Hash) ? payload["encryption"] : nil
+    raise InvalidMobileVaultPayloadError unless payload_matches_schema?(payload, VAULT_BACKUP_SCHEMA)
+  end
 
-    return if payload.is_a?(Hash) &&
-      payload["version"] == 1 &&
-      payload["publicKey"].is_a?(String) &&
-      payload["encryptedPrivateKey"].is_a?(String) &&
-      signing.is_a?(Hash) &&
-      signing["publicKeySpki"].is_a?(String) &&
-      signing["encryptedPrivateKey"].is_a?(String) &&
-      signing["iv"].is_a?(String) &&
-      kdf.is_a?(Hash) &&
-      kdf["salt"].is_a?(String) &&
-      encryption.is_a?(Hash) &&
-      encryption["iv"].is_a?(String)
+  def payload_matches_schema?(payload, schema)
+    return false unless payload.is_a?(Hash)
 
-    raise InvalidMobileVaultPayloadError
+    schema.all? do |key, expected|
+      value = payload[key]
+      case expected
+      when Hash
+        payload_matches_schema?(value, expected)
+      when Module
+        value.is_a?(expected)
+      else
+        value == expected
+      end
+    end
   end
 end

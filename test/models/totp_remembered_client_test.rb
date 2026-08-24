@@ -1,7 +1,9 @@
-require "test_helper"
+# frozen_string_literal: true
+
+require 'test_helper'
 
 class TotpRememberedClientTest < ActiveSupport::TestCase
-  test "issues only a digest and validates active token" do
+  test 'issues only a digest and validates active token' do
     token = TotpRememberedClient.issue!
     client = TotpRememberedClient.first
 
@@ -11,7 +13,7 @@ class TotpRememberedClientTest < ActiveSupport::TestCase
     assert client.reload.last_used_at.present?
   end
 
-  test "rejects expired and revoked tokens" do
+  test 'rejects expired and revoked tokens' do
     expired_token = TotpRememberedClient.issue!
     TotpRememberedClient.last.update!(expires_at: 1.second.ago)
 
@@ -22,7 +24,7 @@ class TotpRememberedClientTest < ActiveSupport::TestCase
     assert_not TotpRememberedClient.valid_token?(revoked_token)
   end
 
-  test "revokes all active tokens" do
+  test 'revokes all active tokens' do
     2.times { TotpRememberedClient.issue! }
 
     TotpRememberedClient.revoke_all!

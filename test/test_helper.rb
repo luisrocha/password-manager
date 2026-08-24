@@ -1,9 +1,11 @@
-ENV["RAILS_ENV"] ||= "test"
-require_relative "../config/environment"
-require "rails/test_help"
-require "factory_bot_rails"
+# frozen_string_literal: true
 
-ENV[VaultSetupToken::ENV_KEY] = "test-setup-token" unless VaultSetupToken.token_configured?
+ENV['RAILS_ENV'] ||= 'test'
+require_relative '../config/environment'
+require 'rails/test_help'
+require 'factory_bot_rails'
+
+ENV[VaultSetupToken::ENV_KEY] = 'test-setup-token' unless VaultSetupToken.token_configured?
 
 module ActiveSupport
   class TestCase
@@ -19,7 +21,7 @@ module ActiveSupport
 end
 
 module VaultUnlockIntegrationHelper
-  TEST_UNLOCK_KEY = OpenSSL::PKey::EC.generate("prime256v1")
+  TEST_UNLOCK_KEY = OpenSSL::PKey::EC.generate('prime256v1')
 
   def unlock!
     get unlock_url, headers: unlock_request_headers
@@ -31,17 +33,17 @@ module VaultUnlockIntegrationHelper
     challenge = response.body.match(/data-challenge="([^"]+)"/)[1]
 
     params = {
-      unlock_signature: Base64.strict_encode64(TEST_UNLOCK_KEY.sign(OpenSSL::Digest::SHA256.new, challenge)),
+      unlock_signature: Base64.strict_encode64(TEST_UNLOCK_KEY.sign(OpenSSL::Digest.new('SHA256'), challenge)),
       signing_public_key_spki: Base64.strict_encode64(TEST_UNLOCK_KEY.public_to_der)
     }
-    params[:setup_token] = ENV["PASSWORD_MANAGER_SETUP_TOKEN"] if VaultSetupToken.token_configured?
+    params[:setup_token] = ENV.fetch('PASSWORD_MANAGER_SETUP_TOKEN', nil) if VaultSetupToken.token_configured?
 
     params
   end
 
   def unlock_request_headers
     @unlock_request_headers ||= {
-      "REMOTE_ADDR" => "192.0.2.#{SecureRandom.random_number(254) + 1}"
+      'REMOTE_ADDR' => "192.0.2.#{SecureRandom.random_number(254) + 1}"
     }
   end
 end

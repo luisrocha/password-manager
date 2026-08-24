@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 class Api::Mobile::CredentialsController < Api::Mobile::BaseController
+  MOBILE_SYNC_SIGNATURE_PREFIX = 'mobile-sync:v1:'
+
   before_action :verify_mobile_sync_signature!, only: :sync
 
   def sync
@@ -6,8 +10,6 @@ class Api::Mobile::CredentialsController < Api::Mobile::BaseController
   end
 
   private
-
-  MOBILE_SYNC_SIGNATURE_PREFIX = "mobile-sync:v1:".freeze
 
   def verify_mobile_sync_signature!
     signing_key = VaultSigningKey.current
@@ -26,17 +28,17 @@ class Api::Mobile::CredentialsController < Api::Mobile::BaseController
 
   def render_invalid_mobile_sync_signature
     render json: {
-      error: "Invalid mobile sync signature",
-      code: "invalid_mobile_sync_signature"
+      error: 'Invalid mobile sync signature',
+      code: 'invalid_mobile_sync_signature'
     }, status: :unauthorized
   end
 
   def mobile_sync_signature
-    request.headers["X-Mobile-Sync-Signature"].to_s
+    request.headers['X-Mobile-Sync-Signature'].to_s
   end
 
   def mobile_sync_signing_key
-    request.headers["X-Mobile-Sync-Signing-Key"].to_s
+    request.headers['X-Mobile-Sync-Signing-Key'].to_s
   end
 
   def mobile_sync_signature_challenge

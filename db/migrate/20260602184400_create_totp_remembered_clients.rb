@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateTotpRememberedClients < ActiveRecord::Migration[8.1]
   def change
     create_table :totp_remembered_clients do |t|

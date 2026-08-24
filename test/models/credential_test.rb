@@ -1,62 +1,68 @@
-require "test_helper"
+# frozen_string_literal: true
+
+require 'test_helper'
 
 class CredentialTest < ActiveSupport::TestCase
   include ActionCable::TestHelper
 
-  ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nopaque-test-payload\n-----END PGP MESSAGE-----".freeze
+  ENCRYPTED_PAYLOAD = "-----BEGIN PGP MESSAGE-----\nopaque-test-payload\n-----END PGP MESSAGE-----"
 
-  test "validates required attributes" do
+  test 'validates required attributes' do
     credential = Credential.new
 
     assert_not credential.valid?
     assert_includes credential.errors[:encrypted_secret_payload], "can't be blank"
   end
 
-  test "allows blank name and domain because username is encrypted" do
-    credential = Credential.new(category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+  test 'allows blank name and domain because username is encrypted' do
+    credential = Credential.new(category: 'login', encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     assert credential.valid?
   end
 
-  test "searches by name and domain" do
-    github = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
-    _gitlab = Credential.create!(name: "GitLab", domain: "gitlab.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+  test 'searches by name and domain' do
+    github = Credential.create!(name: 'GitHub', domain: 'github.com', category: 'login',
+                                encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+    _gitlab = Credential.create!(name: 'GitLab', domain: 'gitlab.com', category: 'login',
+                                 encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
-    by_name = Credential.search("Hub")
-    by_domain = Credential.search("lab.com")
+    by_name = Credential.search('Hub')
+    by_domain = Credential.search('lab.com')
 
     assert_includes by_name, github
     assert_equal 1, by_domain.count
   end
 
-  test "stores only encrypted secret payload" do
+  test 'stores only encrypted secret payload' do
     credential = Credential.create!(
-      name: "Bank",
-      domain: "bank.example",
-      category: "login",
+      name: 'Bank',
+      domain: 'bank.example',
+      category: 'login',
       encrypted_secret_payload: ENCRYPTED_PAYLOAD
     )
 
     db_row = Credential.connection.select_one("SELECT * FROM credentials WHERE id = #{credential.id}")
 
-    assert_equal ENCRYPTED_PAYLOAD, db_row["encrypted_secret_payload"]
-    assert_not db_row.key?("username")
-    assert_not db_row.key?("password")
-    assert_not db_row.key?("notes")
+    assert_equal ENCRYPTED_PAYLOAD, db_row['encrypted_secret_payload']
+    assert_not db_row.key?('username')
+    assert_not db_row.key?('password')
+    assert_not db_row.key?('notes')
   end
 
-  test "allows long domain values without character-length restriction" do
-    long_domain = ("a" * 260) + ".example/custom:path?param=1"
-    credential = Credential.new(name: "Long Domain", domain: long_domain, category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+  test 'allows long domain values without character-length restriction' do
+    long_domain = "#{'a' * 260}.example/custom:path?param=1"
+    credential = Credential.new(name: 'Long Domain', domain: long_domain, category: 'login',
+                                encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     assert credential.valid?
   end
 
-  test "broadcasts credential index changes" do
-    credential = Credential.create!(name: "GitHub", domain: "github.com", category: "login", encrypted_secret_payload: ENCRYPTED_PAYLOAD)
+  test 'broadcasts credential index changes' do
+    credential = Credential.create!(name: 'GitHub', domain: 'github.com', category: 'login',
+                                    encrypted_secret_payload: ENCRYPTED_PAYLOAD)
 
     assert_broadcasts Credential.broadcast_stream_name, 1 do
-      credential.update!(name: "GitHub Personal")
+      credential.update!(name: 'GitHub Personal')
     end
 
     assert_broadcasts Credential.broadcast_stream_name, 1 do

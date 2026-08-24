@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 class VaultSetupToken
-  ENV_KEY = "PASSWORD_MANAGER_SETUP_TOKEN"
-  PLACEHOLDER_VALUES = ["", "replace-with-a-setup-token"].freeze
+  ENV_KEY = 'PASSWORD_MANAGER_SETUP_TOKEN'
+  PLACEHOLDER_VALUES = ['', 'replace-with-a-setup-token'].freeze
 
   def self.required?
     true

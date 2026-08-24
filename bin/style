@@ -17,4 +17,7 @@ for file in "${ruby_files[@]}"; do
   ruby -c "$file" >/dev/null
 done
 
-echo "Style check passed (Ruby syntax): ${#ruby_files[@]} files"
+bundle exec rubocop
+bundle exec archspec check
+
+echo "Style checks passed (Ruby syntax, RuboCop, Archspec): ${#ruby_files[@]} Ruby files"

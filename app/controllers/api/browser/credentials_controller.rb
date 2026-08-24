@@ -1,4 +1,6 @@
-require "uri"
+# frozen_string_literal: true
+
+require 'uri'
 
 class Api::Browser::CredentialsController < Api::BaseController
   def search
@@ -16,7 +18,7 @@ class Api::Browser::CredentialsController < Api::BaseController
       name: browser_credential_name,
       domain: browser_credential_domain,
       encrypted_secret_payload: encrypted_secret_payload(credential_create_params),
-      category: "login"
+      category: 'login'
     )
 
     if credential.save
@@ -26,7 +28,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     else
       render json: {
         error: credential.errors.full_messages.to_sentence,
-        code: "validation_failed"
+        code: 'validation_failed'
       }, status: :unprocessable_entity
     end
   end
@@ -45,7 +47,10 @@ class Api::Browser::CredentialsController < Api::BaseController
     attributes = {
       name: credential_update_name.presence || credential.name
     }
-    attributes[:encrypted_secret_payload] = encrypted_secret_payload(credential_update_params) if encrypted_secret_payload(credential_update_params).present?
+    if encrypted_secret_payload(credential_update_params).present?
+      attributes[:encrypted_secret_payload] =
+        encrypted_secret_payload(credential_update_params)
+    end
 
     if credential.update(attributes)
       render json: {
@@ -54,7 +59,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     else
       render json: {
         error: credential.errors.full_messages.to_sentence,
-        code: "validation_failed"
+        code: 'validation_failed'
       }, status: :unprocessable_entity
     end
   end
@@ -71,7 +76,8 @@ class Api::Browser::CredentialsController < Api::BaseController
   private
 
   def credential_create_params
-    params.permit(:name, :displayName, :domain, :origin, :url, :frameUrl, :frame_url, :title, :encrypted_secret_payload, :encryptedSecretPayload)
+    params.permit(:name, :displayName, :domain, :origin, :url, :frameUrl, :frame_url, :title,
+                  :encrypted_secret_payload, :encryptedSecretPayload)
   end
 
   def credential_update_params
@@ -86,10 +92,10 @@ class Api::Browser::CredentialsController < Api::BaseController
 
   def matching_credentials(hosts, query)
     base_scope = if hosts.empty?
-      query.present? ? Credential.all : Credential.none
-    else
-      host_filtered_scope(hosts)
-    end
+                   query.present? ? Credential.all : Credential.none
+                 else
+                   host_filtered_scope(hosts)
+                 end
 
     return base_scope.sorted.to_a if query.blank?
 
@@ -104,7 +110,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     raw = value.to_s.strip
     return nil if raw.blank?
 
-    normalized = raw.match?(/\A[a-z][a-z0-9+\-.]*:\/\//i) ? raw : "https://#{raw}"
+    normalized = raw.match?(%r{\A[a-z][a-z0-9+\-.]*://}i) ? raw : "https://#{raw}"
     uri = URI.parse(normalized)
     uri.host&.downcase
   rescue URI::InvalidURIError
@@ -120,7 +126,7 @@ class Api::Browser::CredentialsController < Api::BaseController
       credential_create_params[:displayName].to_s.strip.presence ||
       credential_create_params[:title].to_s.strip.presence ||
       browser_credential_domain.presence ||
-      "Website Login"
+      'Website Login'
   end
 
   def credential_update_name
@@ -151,17 +157,21 @@ class Api::Browser::CredentialsController < Api::BaseController
       sql_params[:"host_#{index}"] = host
     end
 
-    fast_scope = Credential.where.not(domain: [nil, ""])
-      .where(sql_parts.join(" OR "), sql_params)
+    fast_scope = Credential.where.not(domain: [nil, ''])
+                           .where(sql_parts.join(' OR '), sql_params)
 
     # Fallback for credentials stored as full URLs or paths instead of bare domains.
-    irregular_ids = Credential.where.not(domain: [nil, ""])
-      .where("domain LIKE '%://%' OR domain LIKE '%/%' OR domain LIKE '%?%' OR domain LIKE '%#%'")
-      .find_each(batch_size: 200)
-      .filter_map do |credential|
-        domain_host = host_from_url(credential.domain)
-        credential.id if domain_host.present? && normalized_hosts.any? { |host| host_matches?(host, domain_host) }
-      end
+    irregular_ids = Credential.where.not(domain: [nil, ''])
+                              .where(
+                                "domain LIKE '%://%' OR domain LIKE '%/%' OR domain LIKE '%?%' OR domain LIKE '%#%'"
+                              )
+                              .find_each(batch_size: 200)
+                              .filter_map do |credential|
+                                domain_host = host_from_url(credential.domain)
+                                credential.id if domain_host.present? && normalized_hosts.any? do |host|
+                                  host_matches?(host, domain_host)
+                                end
+                              end
 
     return fast_scope if irregular_ids.empty?
 
@@ -173,7 +183,7 @@ class Api::Browser::CredentialsController < Api::BaseController
     sql_query = "%#{ActiveRecord::Base.sanitize_sql_like(normalized_query)}%"
 
     sql_name_domain_scope = base_scope.where(
-      "LOWER(name) LIKE :q OR LOWER(domain) LIKE :q",
+      'LOWER(name) LIKE :q OR LOWER(domain) LIKE :q',
       q: sql_query
     )
     sql_name_domain_ids = sql_name_domain_scope.pluck(:id)

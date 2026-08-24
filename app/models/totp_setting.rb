@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 class TotpSetting < ApplicationRecord
-  ISSUER = "Password Manager"
-  ACCOUNT_NAME = "Vault"
+  ISSUER = 'Password Manager'
+  ACCOUNT_NAME = 'Vault'
   RECOVERY_CODE_COUNT = 10
   RECOVERY_CODE_BYTES = 10
 
@@ -28,7 +30,7 @@ class TotpSetting < ApplicationRecord
 
   def self.generate_recovery_codes
     Array.new(RECOVERY_CODE_COUNT) do
-      SecureRandom.alphanumeric(RECOVERY_CODE_BYTES).upcase.scan(/.{1,5}/).join("-")
+      SecureRandom.alphanumeric(RECOVERY_CODE_BYTES).upcase.scan(/.{1,5}/).join('-')
     end
   end
 
@@ -70,11 +72,11 @@ class TotpSetting < ApplicationRecord
   end
 
   def normalized_code(code)
-    code.to_s.gsub(/\s+/, "")
+    code.to_s.gsub(/\s+/, '')
   end
 
   def normalized_recovery_code(code)
-    code.to_s.gsub(/[^A-Za-z0-9]/, "").upcase
+    code.to_s.gsub(/[^A-Za-z0-9]/, '').upcase
   end
 
   def recovery_code_digest(code)
@@ -82,16 +84,16 @@ class TotpSetting < ApplicationRecord
   end
 
   def recovery_code_digest_list
-    JSON.parse(recovery_code_digests.presence || "[]")
+    JSON.parse(recovery_code_digests.presence || '[]')
   rescue JSON::ParserError
     []
   end
 
-  def secure_compare(a, b)
-    ActiveSupport::SecurityUtils.secure_compare(a, b)
+  def secure_compare(provided_value, expected_value)
+    ActiveSupport::SecurityUtils.secure_compare(provided_value, expected_value)
   end
 
   def only_one_totp_setting
-    errors.add(:base, "TOTP is already configured") if self.class.exists?
+    errors.add(:base, 'TOTP is already configured') if self.class.exists?
   end
 end
