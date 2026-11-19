@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG RUBY_VERSION=3.4.13
+ARG RUBY_VERSION=4.0.10
 FROM ruby:${RUBY_VERSION}-slim AS base
 
 WORKDIR /rails
@@ -43,6 +43,8 @@ RUN bundle install && \
     rm -rf ~/.bundle/ /usr/local/bundle/ruby/*/cache /usr/local/bundle/ruby/*/bundler/gems/*/.git
 
 COPY . .
+
+RUN bin/rails tailwindcss:build
 
 CMD ["bin/rails", "server", "-b", "0.0.0.0"]
 
