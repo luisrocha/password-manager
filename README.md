@@ -17,7 +17,7 @@ Self-hosted password manager web app including browser extension and mobile app 
 
 ## Requirements
 - Docker and Docker Compose for the recommended production-style local/self-hosted setup
-- Ruby `3.4.7`, Bundler, and SQLite3 for running the Rails app directly without Docker
+- Ruby `3.4.13`, Bundler, and SQLite3 for running the Rails app directly without Docker
 
 ## Browser compatibility
 - Chrome / Chromium / Brave 89+
